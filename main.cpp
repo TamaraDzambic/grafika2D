@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <ctime>
 
 #include <GL/glew.h>   
 #include <GLFW/glfw3.h>
@@ -33,9 +34,9 @@ void generateFish(float fishX, float fishY, float fishWidth, float fishHeight, f
 int main(void)
 {
     //initialization
-    if (!glfwInit()) 
+    if (!glfwInit())
     {
-        std::cout<<"GLFW Biblioteka se nije ucitala! :(\n";
+        std::cout << "GLFW Biblioteka se nije ucitala! :(\n";
         return 1;
     }
 
@@ -49,10 +50,10 @@ int main(void)
 
     float aspectRatio = static_cast<float>(mode->width) / mode->height;
 
-    if (window == NULL) 
+    if (window == NULL)
     {
         std::cout << "Prozor nije napravljen! :(\n";
-        glfwTerminate(); 
+        glfwTerminate();
         return 2;
     }
     glfwMakeContextCurrent(window);
@@ -64,7 +65,7 @@ int main(void)
     }
 
     //shader and buffers
-    unsigned int unifiedShader = createShader("basic.vert", "basic.frag"); 
+    unsigned int unifiedShader = createShader("basic.vert", "basic.frag");
 
     unsigned int VAO[8];
     glGenVertexArrays(8, VAO);
@@ -74,10 +75,10 @@ int main(void)
 
     //sky
     float skyVertices[] = {
-        -1.0, -1.0, 
-        1.0, -1.0,     
-        -1.0, 1.0,    
-        1.0, 1.0,    
+        -1.0, -1.0,
+        1.0, -1.0,
+        -1.0, 1.0,
+        1.0, 1.0,
     };
 
     glBindVertexArray(VAO[0]);
@@ -101,11 +102,11 @@ int main(void)
     // sea
     float seaVertices[] = {
         -1.0, -1.0,
-        1.0, -1.0,   
-        -1.0, 0.0,    
-        1.0, 0.0,  
+        1.0, -1.0,
+        -1.0, 0.0,
+        1.0, 0.0,
     };
-    
+
     glBindVertexArray(VAO[2]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(seaVertices), seaVertices, GL_STATIC_DRAW);
@@ -113,13 +114,13 @@ int main(void)
     glEnableVertexAttribArray(0);
 
     // index texture
-    float indexVertices[] = { 
+    float indexVertices[] = {
         1.0f, -1.0f,  1.0f, 0.0f,
         1.0f, -0.85f,  1.0f, 1.0f,
         0.7f, -1.0f,  0.0f, 0.0f,
         0.7f, -0.85f,  0.0f, 1.0f
     };
-   
+
     glBindVertexArray(VAO[3]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[3]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(indexVertices), indexVertices, GL_STATIC_DRAW);
@@ -145,7 +146,7 @@ int main(void)
     // islands
     float ellipses[((2 + CRES) * 2) * 2]{};
     generateEllipse(ellipses, 0.0f, -0.2f, 0.6f, 0.2f, 0);
-    generateEllipse(ellipses, -0.6f, -0.8f, 0.3f, 0.1f,  (2 + CRES) * 2);
+    generateEllipse(ellipses, -0.6f, -0.8f, 0.3f, 0.1f, (2 + CRES) * 2);
 
     glBindVertexArray(VAO[4]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
@@ -164,10 +165,10 @@ int main(void)
     palmTree[4] = -0.15;
     palmTree[5] = 0.4;
     generateHalfCircle(palmTree, -0.15f, 0.4f, true, 70, 0.13f, aspectRatio, 6);
-    generateHalfCircle(palmTree, -0.15f, 0.4f, true, 10, 0.12f, aspectRatio, (2 + CRES) * 2 *1 + 6);
-    generateHalfCircle(palmTree, -0.15f, 0.4f, false, -70, 0.13f, aspectRatio, (2 + CRES) * 2 *2 + 6);
-    generateHalfCircle(palmTree, -0.15f, 0.4f, false, -10, 0.12f, aspectRatio, (2 + CRES) * 2 *3 + 6);
-    generateHalfCircle(palmTree, -0.15f, 0.4f, true, -50, 0.11f, aspectRatio, (2 + CRES) * 2 *4 + 6);
+    generateHalfCircle(palmTree, -0.15f, 0.4f, true, 10, 0.12f, aspectRatio, (2 + CRES) * 2 * 1 + 6);
+    generateHalfCircle(palmTree, -0.15f, 0.4f, false, -70, 0.13f, aspectRatio, (2 + CRES) * 2 * 2 + 6);
+    generateHalfCircle(palmTree, -0.15f, 0.4f, false, -10, 0.12f, aspectRatio, (2 + CRES) * 2 * 3 + 6);
+    generateHalfCircle(palmTree, -0.15f, 0.4f, true, -50, 0.11f, aspectRatio, (2 + CRES) * 2 * 4 + 6);
 
     glBindVertexArray(VAO[5]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[5]);
@@ -180,7 +181,7 @@ int main(void)
     float fireCircles[((2 + CRES) * 2) * 2]{};
     generateFireCircle(fireCircles, 0.2f, -0.1f, 0.08f, aspectRatio, 0);
     generateFireCircle(fireCircles, 0.2f, -0.13f, 0.05f, aspectRatio, (2 + CRES) * 2);
-    
+
     glBindVertexArray(VAO[6]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[6]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(fireCircles), fireCircles, GL_STATIC_DRAW);
@@ -203,8 +204,8 @@ int main(void)
 
     glBindVertexArray(0);
 
-    
-    float speed = 0.5; 
+
+    float speed = 1.0;
     float r = 1.0;
     GLuint sunPosLoc = glGetUniformLocation(unifiedShader, "sunPos");
     GLuint seaPosLoc = glGetUniformLocation(unifiedShader, "seaPos");
@@ -214,45 +215,68 @@ int main(void)
     GLuint bgMode = glGetUniformLocation(unifiedShader, "bgMode");
     GLuint isLeaf = glGetUniformLocation(unifiedShader, "isLeaf");
     GLuint useTextureLoc = glGetUniformLocation(unifiedShader, "useTexture");
+    clock_t lastKeyPressTime = clock();
 
     while (!glfwWindowShouldClose(window))
     {
+        bool speedKeyPressed = false;
+
         // tasters
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
             glfwSetWindowShouldClose(window, GL_TRUE);
         }
-       
-        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_1) == GLFW_PRESS) {
+
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_1) == GLFW_PRESS)
+        {
             glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
             glEnable(GL_PROGRAM_POINT_SIZE);
             glPointSize(4);
         }
-        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS)
+        {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
-        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_3) == GLFW_PRESS) {
+        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_3) == GLFW_PRESS)
+        {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
-       
+
         if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS)
         {
-            if (speed <= 1.0) {
-                speed += 0.1;
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.1) {
+                if (speed <= 2.0) {
+                    speed += 0.2;
+                    speedKeyPressed = true;  // Set the flag to true to indicate key press
+                    lastKeyPressTime = currentTime;  // Update the last key press time
+                }
             }
+   
         }
         if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS)
         {
-            if (speed >= 0.2){
-                speed -= 0.1;
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.1) {
+                if (speed >= 0.2) {
+                    speed -= 0.2;
+                    speedKeyPressed = true;  // Set the flag to true to indicate key press
+                    lastKeyPressTime = currentTime;  // Update the last key press time
+                }
             }
         }
-        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS )
+
+
+        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
         {
-            speed = 0.5;
+            speed = 1.0;
         }
 
-        glClearColor(0.0, 0.0, 0.0, 0.0); 
+        glClearColor(0.0, 0.0, 0.0, 0.0);
         glClear(GL_COLOR_BUFFER_BIT);
         glUseProgram(unifiedShader);
 
@@ -265,10 +289,10 @@ int main(void)
 
         //sun, moon
         glBindVertexArray(VAO[1]);
-        
+
         glUniform1i(bgMode, 1);
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
-        glUniform2f(sunPosLoc, r* sin(glfwGetTime()* speed), r* (cos(glfwGetTime()* speed)));
+        glUniform2f(sunPosLoc, r * sin(glfwGetTime() * speed), r * (cos(glfwGetTime() * speed)));
 
         glUniform1i(bgMode, 2);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
@@ -292,7 +316,7 @@ int main(void)
         glUniform1i(elementMode, 2);
 
         glBufferData(GL_ARRAY_BUFFER, sizeof(fishVertices), fishVertices, GL_STATIC_DRAW);
-            //fish direction
+        //fish direction
         if (cos(glfwGetTime() * speed) < 0) {
             fishVertices[4] = fishVertices[0];
             fishVertices[12 + 4] = fishVertices[12];
@@ -318,10 +342,10 @@ int main(void)
 
         glUniform2f(seaPosLoc, 0.6 * cos(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
         glDrawArrays(GL_TRIANGLES, 3, 3);
-        
+
         glUniform2f(seaPosLoc, 0.2 * sin(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
         glDrawArrays(GL_TRIANGLES, 6, 3);
-        
+
         glUniform2f(seaPosLoc, 0.4 * sin(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
         glDrawArrays(GL_TRIANGLES, 9, 3);
 
@@ -352,12 +376,10 @@ int main(void)
 
         glUniform1i(bgMode, 1);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
-        glUniform1f(firePosLoc, 1.2 + 0.3 *sin(glfwGetTime() * speed));
+        glUniform1f(firePosLoc, 1.2 + 0.3 * sin(glfwGetTime() * speed));
 
         glUniform1i(bgMode, 2);
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
-
-
 
 
         // index texture
