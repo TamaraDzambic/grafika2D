@@ -2,7 +2,6 @@
 // Opis:  projekat 12
 
 
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -67,10 +66,10 @@ int main(void)
     //shader and buffers
     unsigned int unifiedShader = createShader("basic.vert", "basic.frag");
 
-    unsigned int VAO[8];
-    glGenVertexArrays(8, VAO);
-    unsigned int VBO[8];
-    glGenBuffers(8, VBO);
+    unsigned int VAO[9];
+    glGenVertexArrays(9, VAO);
+    unsigned int VBO[9];
+    glGenBuffers(9, VBO);
 
 
     //sky
@@ -188,6 +187,38 @@ int main(void)
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // clouds
+    const int numberOfPointsInCircleCloud = 100;
+    float radiusCloud = 0.1f;
+    const int numCloudCirclesCloud = 15;
+    float cloudCircleCenters[numCloudCirclesCloud][2] = {
+        {-0.12f, 0.85f}, {-0.2f, 0.8f},{-0.03f, 0.8f},
+        {-0.15f, 0.74f}, {-0.08f, 0.74f},
+
+    {-0.12f - 0.6f, 0.85f - 0.3f}, {-0.2f - 0.6f, 0.8f - 0.3f}, {-0.03f - 0.6f, 0.8f - 0.3f},
+    {-0.15f - 0.6f, 0.74f - 0.3f}, {-0.08f - 0.6f, 0.74f - 0.3f},
+
+    {-0.12f + 0.6f, 0.85f - 0.3f}, {-0.2f + 0.6f, 0.8f - 0.3f}, {-0.03f + 0.6f, 0.8f - 0.3f},
+    {-0.15f + 0.6f, 0.74f - 0.3f}, {-0.08f + 0.6f, 0.74f - 0.3f}
+
+    };
+    float circleVerticesCloud[numberOfPointsInCircleCloud * 2];
+    for (int i = 0; i < numberOfPointsInCircleCloud; ++i) {
+        float angle = 2.0f * M_PI * i / numberOfPointsInCircleCloud;
+        circleVerticesCloud[i * 2] = radiusCloud * cos(angle) / aspectRatio;
+        circleVerticesCloud[i * 2 + 1] = radiusCloud * sin(angle);
+    }
+
+    glBindVertexArray(VAO[7]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[7]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(circleVerticesCloud), circleVerticesCloud, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     // fishes
     float fishVertices[2 * 3 * 4];
@@ -196,8 +227,8 @@ int main(void)
     generateFish(0.3, -0.8, 0.1, 0.12, fishVertices, 12);
     generateFish(0.8, -0.4, 0.12, 0.1, fishVertices, 18);
 
-    glBindVertexArray(VAO[7]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[7]);
+    glBindVertexArray(VAO[8]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[8]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(fishVertices), fishVertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -216,6 +247,7 @@ int main(void)
     GLuint isLeaf = glGetUniformLocation(unifiedShader, "isLeaf");
     GLuint useTextureLoc = glGetUniformLocation(unifiedShader, "useTexture");
     clock_t lastKeyPressTime = clock();
+    float cloudOffsetX = 0.0f;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -337,7 +369,7 @@ int main(void)
         }
 
         glUniform1i(bgMode, 1);
-        glBindVertexArray(VAO[7]);
+        glBindVertexArray(VAO[8]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glUniform2f(seaPosLoc, 0.6 * cos(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
@@ -354,6 +386,23 @@ int main(void)
         glUniform1i(elementMode, 4);
         glBindVertexArray(VAO[4]);
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
+
+        // clouds
+        glUniform1i(elementMode, 7);
+
+        cloudOffsetX += 0.0009 * speed;
+        if (cloudOffsetX > 1.5f) {
+            cloudOffsetX = -1.5f;
+        }
+
+        glBindVertexArray(VAO[7]);
+        for (int i = 0; i < numCloudCirclesCloud; i++) {
+            glUniform2f(glGetUniformLocation(unifiedShader, "circleCenter"),
+                cloudCircleCenters[i][0] + cloudOffsetX, cloudCircleCenters[i][1]);
+            glDrawArrays(GL_TRIANGLE_FAN, 0, numberOfPointsInCircleCloud);
+        }
+        glBindVertexArray(0);
+
 
         //pamltree
         glUniform1i(elementMode, 5);
@@ -380,6 +429,8 @@ int main(void)
 
         glUniform1i(bgMode, 2);
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
+
+
 
 
         // index texture

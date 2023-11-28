@@ -14,6 +14,9 @@ uniform vec2 seaPos;
 uniform int fishPos;
 uniform float firePos;
 
+uniform vec2 circleCenter;
+
+
 uniform int mode; //0 is default, 1 is sun and moon, 2 is sea, 3 texture
 uniform int bgMode; // 0 sky, 1 sun, 2 moon
 uniform bool isLeaf; // 0 sky, 1 sun, 2 moon
@@ -73,6 +76,11 @@ void main()
 
 		// Set the gl_Position
 		gl_Position = vec4((inPos.x - targetPos.x) * firePos + targetPos.x, (inPos.y - targetPos.y) * firePos + targetPos.y, 0.0, 1.0);
+
+}
+else if(mode ==7){
+ gl_Position = vec4(inPos + circleCenter, 0.0, 1.0);
+		channelCol = vec4(1.0, 1.0, 1.0, 1.0 );
 
 }
 
