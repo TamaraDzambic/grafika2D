@@ -14,10 +14,16 @@ uniform vec2 seaPos;
 uniform int fishPos;
 uniform float firePos;
 
-uniform vec2 circleCenter;
+uniform vec2 cloudCircleCenter;
 
 
-uniform int mode; //0 is default, 1 is sun and moon, 2 is sea, 3 texture
+uniform mat4 uM; //Matrica transformacije
+uniform mat4 uV; //Matrica kamere
+uniform mat4 uP; //Matrica projekcija
+
+
+
+uniform int mode; //0 default, 1 sun and moon, 2 sea and fishes, 3 texture, 4 islands, 5 palmtree, 6 fire, 7 clouds
 uniform int bgMode; // 0 sky, 1 sun, 2 moon
 uniform bool isLeaf; // 0 sky, 1 sun, 2 moon
 
@@ -77,12 +83,11 @@ void main()
 		// Set the gl_Position
 		gl_Position = vec4((inPos.x - targetPos.x) * firePos + targetPos.x, (inPos.y - targetPos.y) * firePos + targetPos.y, 0.0, 1.0);
 
-}
-else if(mode ==7){
- gl_Position = vec4(inPos + circleCenter, 0.0, 1.0);
+	}else if(mode ==7){
+		gl_Position = vec4(inPos.x+cloudCircleCenter.x , inPos.y+cloudCircleCenter.y, 0.0, 1.0); 
 		channelCol = vec4(1.0, 1.0, 1.0, 1.0 );
 
-}
+	}
 
 	else{
 		gl_Position = vec4(inPos.x, inPos.y, 0.0, 1.0);

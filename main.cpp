@@ -23,18 +23,24 @@ unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource); 
 static unsigned loadImageToTexture(const char* filePath); 
 
+void initialize(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount);
+void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture);
+
 void generateCircle(float circle[], float centerX, float centerY, float radius, float aspectRatio, int beg);
-void generateFireCircle(float circle[], float centerX, float centerY, float radius, float aspectRatio, int beg);
 void generateHalfCircle(float vec[], float x0, float y0, bool side, float angleOffset, float radius, float aspectRatio, int beg);
 void generateEllipse(float circle[], float centerX, float centerY, float radiusX, float radiusY, int beg);
+
+void generateFire(float circle[], float centerX, float centerY, float radius, float aspectRatio, int beg);
+void generatePalmTree(float palmTree[], float aspectRatio);
+void generateClouds(float circleVerticesCloud[], float aspectRatio);
 void generateFish(float fishX, float fishY, float fishWidth, float fishHeight, float fishVertices[], int beg);
 
+void updateFishPosition(float fishVertices[], int verticesCount, float speed);
 
 int main(void)
 {
     //initialization
-    if (!glfwInit())
-    {
+    if (!glfwInit()){
         std::cout << "GLFW Biblioteka se nije ucitala! :(\n";
         return 1;
     }
@@ -49,16 +55,14 @@ int main(void)
 
     float aspectRatio = static_cast<float>(mode->width) / mode->height;
 
-    if (window == NULL)
-    {
+    if (window == NULL){
         std::cout << "Prozor nije napravljen! :(\n";
         glfwTerminate();
         return 2;
     }
     glfwMakeContextCurrent(window);
 
-    if (glewInit() != GLEW_OK)
-    {
+    if (glewInit() != GLEW_OK){
         std::cout << "GLEW nije mogao da se ucita! :'(\n";
         return 3;
     }
@@ -78,25 +82,14 @@ int main(void)
         1.0, -1.0,
         -1.0, 1.0,
         1.0, 1.0,
-    };
-
-    glBindVertexArray(VAO[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyVertices), skyVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
+     };
+    initialize(VAO[0], VBO[0], skyVertices, sizeof(skyVertices));
 
     //sun and moon
     float circles[((2 + CRES) * 2) * 2];
     generateCircle(circles, 0.0f, 0.0f, 0.15f, aspectRatio, 0);
     generateCircle(circles, 0.0f, 0.0f, 0.1f, aspectRatio, (2 + CRES) * 2);
-
-    glBindVertexArray(VAO[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(circles), circles, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    initialize(VAO[1], VBO[1], circles, sizeof(circles));
 
     // sea
     float seaVertices[] = {
@@ -105,12 +98,7 @@ int main(void)
         -1.0, 0.0,
         1.0, 0.0,
     };
-
-    glBindVertexArray(VAO[2]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(seaVertices), seaVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    initialize(VAO[2], VBO[2], seaVertices, sizeof(seaVertices));
 
     // index texture
     float indexVertices[] = {
@@ -119,135 +107,57 @@ int main(void)
         0.7f, -1.0f,  0.0f, 0.0f,
         0.7f, -0.85f,  0.0f, 1.0f
     };
-
-    glBindVertexArray(VAO[3]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[3]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(indexVertices), indexVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glActiveTexture(GL_TEXTURE0);
     unsigned indexTexture = loadImageToTexture("index.png");
-    glBindTexture(GL_TEXTURE_2D, indexTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    unsigned uTexLoc = glGetUniformLocation(unifiedShader, "uTex");
-    glUniform1i(uTexLoc, 0); // Indeks teksturne jedinice (sa koje teksture ce se citati boje)
+    initializeTexture(VAO[3], VBO[3], indexVertices, sizeof(indexVertices), indexTexture);
+    //unsigned uTexLoc = glGetUniformLocation(unifiedShader, "uTex");
+    //glUniform1i(uTexLoc, 0); // Indeks teksturne jedinice (sa koje teksture ce se citati boje)
 
     // islands
     float ellipses[((2 + CRES) * 2) * 2]{};
     generateEllipse(ellipses, 0.0f, -0.2f, 0.6f, 0.2f, 0);
     generateEllipse(ellipses, -0.6f, -0.8f, 0.3f, 0.1f, (2 + CRES) * 2);
-
-    glBindVertexArray(VAO[4]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(ellipses), ellipses, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
+    initialize(VAO[4], VBO[4], ellipses, sizeof(ellipses));
 
     // palmtree
     float palmTree[6 + ((2 + CRES) * 2) * 5]{};  // triangle + 4 half-circles
-
-    palmTree[0] = -0.18;
-    palmTree[1] = -0.2;
-    palmTree[2] = -0.12;
-    palmTree[3] = -0.2;
-    palmTree[4] = -0.15;
-    palmTree[5] = 0.4;
-    generateHalfCircle(palmTree, -0.15f, 0.4f, true, 70, 0.13f, aspectRatio, 6);
-    generateHalfCircle(palmTree, -0.15f, 0.4f, true, 10, 0.12f, aspectRatio, (2 + CRES) * 2 * 1 + 6);
-    generateHalfCircle(palmTree, -0.15f, 0.4f, false, -70, 0.13f, aspectRatio, (2 + CRES) * 2 * 2 + 6);
-    generateHalfCircle(palmTree, -0.15f, 0.4f, false, -10, 0.12f, aspectRatio, (2 + CRES) * 2 * 3 + 6);
-    generateHalfCircle(palmTree, -0.15f, 0.4f, true, -50, 0.11f, aspectRatio, (2 + CRES) * 2 * 4 + 6);
-
-    glBindVertexArray(VAO[5]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[5]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(palmTree), palmTree, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
+    generatePalmTree(palmTree, aspectRatio);
+    initialize(VAO[5], VBO[5], palmTree, sizeof(palmTree));
 
     // fire
     float fireCircles[((2 + CRES) * 2) * 2]{};
-    generateFireCircle(fireCircles, 0.2f, -0.1f, 0.08f, aspectRatio, 0);
-    generateFireCircle(fireCircles, 0.2f, -0.13f, 0.05f, aspectRatio, (2 + CRES) * 2);
-
-    glBindVertexArray(VAO[6]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[6]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(fireCircles), fireCircles, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    generateFire(fireCircles, 0.2f, -0.1f, 0.08f, aspectRatio, 0);
+    generateFire(fireCircles, 0.2f, -0.13f, 0.05f, aspectRatio, (2 + CRES) * 2);
+    initialize(VAO[6], VBO[6], fireCircles, sizeof(fireCircles));
 
     // clouds
-    const int numberOfPointsInCircleCloud = 100;
-    float radiusCloud = 0.1f;
-    const int numCloudCirclesCloud = 15;
-    float cloudCircleCenters[numCloudCirclesCloud][2] = {
-        {-0.12f, 0.85f}, {-0.2f, 0.8f},{-0.03f, 0.8f},
-        {-0.15f, 0.74f}, {-0.08f, 0.74f},
-
-    {-0.12f - 0.6f, 0.85f - 0.3f}, {-0.2f - 0.6f, 0.8f - 0.3f}, {-0.03f - 0.6f, 0.8f - 0.3f},
-    {-0.15f - 0.6f, 0.74f - 0.3f}, {-0.08f - 0.6f, 0.74f - 0.3f},
-
-    {-0.12f + 0.6f, 0.85f - 0.3f}, {-0.2f + 0.6f, 0.8f - 0.3f}, {-0.03f + 0.6f, 0.8f - 0.3f},
-    {-0.15f + 0.6f, 0.74f - 0.3f}, {-0.08f + 0.6f, 0.74f - 0.3f}
-
-    };
-    float circleVerticesCloud[numberOfPointsInCircleCloud * 2];
-    for (int i = 0; i < numberOfPointsInCircleCloud; ++i) {
-        float angle = 2.0f * M_PI * i / numberOfPointsInCircleCloud;
-        circleVerticesCloud[i * 2] = radiusCloud * cos(angle) / aspectRatio;
-        circleVerticesCloud[i * 2 + 1] = radiusCloud * sin(angle);
-    }
-
-    glBindVertexArray(VAO[7]);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[7]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(circleVerticesCloud), circleVerticesCloud, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
+    float circleVerticesCloud[((2 + CRES) * 2) * 5 * 9]{};
+    generateClouds(circleVerticesCloud, aspectRatio);
+    initialize(VAO[7], VBO[7], circleVerticesCloud, sizeof(circleVerticesCloud));
+   
     // fishes
-    float fishVertices[2 * 3 * 4];
+    float fishVertices[2 * 3 * 4]{};
     generateFish(-0.7, -0.2, 0.08, 0.1, fishVertices, 0);
     generateFish(-0.2, -0.5, 0.15, 0.15, fishVertices, 6);
     generateFish(0.3, -0.8, 0.1, 0.12, fishVertices, 12);
     generateFish(0.8, -0.4, 0.12, 0.1, fishVertices, 18);
-
-    glBindVertexArray(VAO[8]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[8]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(fishVertices), fishVertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
+    initialize(VAO[8], VBO[8], fishVertices, sizeof(fishVertices));
 
 
-    float speed = 1.0;
+    float speed = 0.5;
     float r = 1.0;
+    float cloudOffsetX = 0.0f;
+
     GLuint sunPosLoc = glGetUniformLocation(unifiedShader, "sunPos");
     GLuint seaPosLoc = glGetUniformLocation(unifiedShader, "seaPos");
     GLuint fishPosLoc = glGetUniformLocation(unifiedShader, "fishPos");
     GLuint firePosLoc = glGetUniformLocation(unifiedShader, "firePos");
+    GLuint cloudPosLoc = glGetUniformLocation(unifiedShader, "cloudCircleCenter");
+
     GLuint elementMode = glGetUniformLocation(unifiedShader, "mode");
     GLuint bgMode = glGetUniformLocation(unifiedShader, "bgMode");
     GLuint isLeaf = glGetUniformLocation(unifiedShader, "isLeaf");
     GLuint useTextureLoc = glGetUniformLocation(unifiedShader, "useTexture");
     clock_t lastKeyPressTime = clock();
-    float cloudOffsetX = 0.0f;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -258,7 +168,6 @@ int main(void)
         {
             glfwSetWindowShouldClose(window, GL_TRUE);
         }
-
         if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_1) == GLFW_PRESS)
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
@@ -273,7 +182,6 @@ int main(void)
         {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
-
         if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS)
         {
             clock_t currentTime = clock();
@@ -301,8 +209,6 @@ int main(void)
                 }
             }
         }
-
-
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
         {
             speed = 1.0;
@@ -312,139 +218,93 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
         glUseProgram(unifiedShader);
 
-        //sky
-        glUniform1i(elementMode, 1);
+        //sky        
         glBindVertexArray(VAO[0]);
-
+        glUniform1i(elementMode, 1);
         glUniform1i(bgMode, 0);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         //sun, moon
         glBindVertexArray(VAO[1]);
-
         glUniform1i(bgMode, 1);
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
         glUniform2f(sunPosLoc, r * sin(glfwGetTime() * speed), r * (cos(glfwGetTime() * speed)));
-
         glUniform1i(bgMode, 2);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
         glUniform2f(sunPosLoc, r * sin(glfwGetTime() * speed + M_PI), r * (cos(glfwGetTime() * speed + M_PI)));
 
-
-
         //sea 
-        glUniform1i(elementMode, 2);
         glBindVertexArray(VAO[2]);
-
+        glUniform1i(elementMode, 2);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glUniform2f(seaPosLoc, 0.2 * sin(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
 
         //island1 
-        glUniform1i(elementMode, 4);
         glBindVertexArray(VAO[4]);
+        glUniform1i(elementMode, 4);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
 
         //fishes
-        glUniform1i(elementMode, 2);
-
-        glBufferData(GL_ARRAY_BUFFER, sizeof(fishVertices), fishVertices, GL_STATIC_DRAW);
-        //fish direction
-        if (cos(glfwGetTime() * speed) < 0) {
-            fishVertices[4] = fishVertices[0];
-            fishVertices[12 + 4] = fishVertices[12];
-            fishVertices[18 + 4] = fishVertices[18];
-
-        }
-        else {
-            fishVertices[4] = fishVertices[2];
-            fishVertices[12 + 4] = fishVertices[12 + 2];
-            fishVertices[18 + 4] = fishVertices[18 + 2];
-
-        }
-        if (sin(glfwGetTime() * speed) > 0) {
-            fishVertices[6 + 4] = fishVertices[6];
-        }
-        else {
-            fishVertices[6 + 4] = fishVertices[6 + 2];
-        }
-
-        glUniform1i(bgMode, 1);
         glBindVertexArray(VAO[8]);
+        glUniform1i(elementMode, 2);
+        glUniform1i(bgMode, 1);
+        updateFishPosition(fishVertices, sizeof(fishVertices), speed);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-
         glUniform2f(seaPosLoc, 0.6 * cos(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
         glDrawArrays(GL_TRIANGLES, 3, 3);
-
         glUniform2f(seaPosLoc, 0.2 * sin(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
         glDrawArrays(GL_TRIANGLES, 6, 3);
-
         glUniform2f(seaPosLoc, 0.4 * sin(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
         glDrawArrays(GL_TRIANGLES, 9, 3);
 
-
         //island2
-        glUniform1i(elementMode, 4);
         glBindVertexArray(VAO[4]);
+        glUniform1i(elementMode, 4);
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
 
         // clouds
-        glUniform1i(elementMode, 7);
-
-        cloudOffsetX += 0.0009 * speed;
-        if (cloudOffsetX > 1.5f) {
-            cloudOffsetX = -1.5f;
-        }
-
         glBindVertexArray(VAO[7]);
-        for (int i = 0; i < numCloudCirclesCloud; i++) {
-            glUniform2f(glGetUniformLocation(unifiedShader, "circleCenter"),
-                cloudCircleCenters[i][0] + cloudOffsetX, cloudCircleCenters[i][1]);
-            glDrawArrays(GL_TRIANGLE_FAN, 0, numberOfPointsInCircleCloud);
+        glUniform1i(elementMode, 7);
+        cloudOffsetX += 0.0009 * speed;
+        if (cloudOffsetX > 1.8f) {
+            cloudOffsetX = -1.8f;
         }
-        glBindVertexArray(0);
-
+        for (int i = 0; i < 5 * 9; i++) {
+            glUniform2f(cloudPosLoc, cloudOffsetX, 0);
+            glDrawArrays(GL_TRIANGLE_FAN, 32*i, 32);
+        }
 
         //pamltree
-        glUniform1i(elementMode, 5);
         glBindVertexArray(VAO[5]);
+        glUniform1i(elementMode, 5);
         glUniform1i(isLeaf, GL_FALSE);
-
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glUniform1i(isLeaf, GL_TRUE);
-
-        glDrawArrays(GL_TRIANGLE_FAN, 3, 32);
-        glDrawArrays(GL_TRIANGLE_FAN, 35, 32);
-        glDrawArrays(GL_TRIANGLE_FAN, 67, 32);
-        glDrawArrays(GL_TRIANGLE_FAN, 99, 32);
-        glDrawArrays(GL_TRIANGLE_FAN, 131, 32);
+        for (int i = 0; i < 5; i++) {
+            glDrawArrays(GL_TRIANGLE_FAN, 3+32*i, 32);
+        }
 
         // fire
-        glUniform1i(elementMode, 6);
-
         glBindVertexArray(VAO[6]);
-
+        glUniform1i(elementMode, 6);
         glUniform1i(bgMode, 1);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
-        glUniform1f(firePosLoc, 1.2 + 0.3 * sin(glfwGetTime() * speed));
-
         glUniform1i(bgMode, 2);
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
-
-
-
+        glUniform1f(firePosLoc, 1.2 + 0.3 * sin(glfwGetTime() * speed));
 
         // index texture
+        glBindVertexArray(VAO[3]);
         glUniform1i(elementMode, 3);
         glUniform1i(useTextureLoc, GL_TRUE);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
-
-        glBindVertexArray(VAO[3]);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glUniform1i(useTextureLoc, GL_FALSE);
 
 
+        //swap
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -454,11 +314,9 @@ int main(void)
     glDeleteBuffers(1, VBO);
     glDeleteVertexArrays(1, VAO);
     glDeleteProgram(unifiedShader);
-
     glfwTerminate();
     return 0;
 }
-
 
 unsigned int compileShader(GLenum type, const char* source)
 {
@@ -498,8 +356,8 @@ unsigned int compileShader(GLenum type, const char* source)
     }
     return shader;
 }
-unsigned int createShader(const char* vsSource, const char* fsSource)
-{
+
+unsigned int createShader(const char* vsSource, const char* fsSource){
 
     unsigned int program;
     unsigned int vertexShader;
@@ -534,6 +392,7 @@ unsigned int createShader(const char* vsSource, const char* fsSource)
 
     return program;
 }
+
 static unsigned loadImageToTexture(const char* filePath) {
     int TextureWidth;
     int TextureHeight;
@@ -569,6 +428,76 @@ static unsigned loadImageToTexture(const char* filePath) {
     }
 }
 
+void initialize(unsigned int VAO, unsigned int VBO, float *vertices, int verticesCount) {
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, verticesCount, vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+}
+
+void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture) {
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, verticesCount, vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, indexTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void generatePalmTree(float palmTree[], float aspectRatio) {
+    palmTree[0] = -0.18;
+    palmTree[1] = -0.2;
+    palmTree[2] = -0.12;
+    palmTree[3] = -0.2;
+    palmTree[4] = -0.15;
+    palmTree[5] = 0.4;
+    generateHalfCircle(palmTree, -0.15f, 0.4f, true, 70, 0.13f, aspectRatio, 6);
+    generateHalfCircle(palmTree, -0.15f, 0.4f, true, 10, 0.12f, aspectRatio, (2 + CRES) * 2 * 1 + 6);
+    generateHalfCircle(palmTree, -0.15f, 0.4f, false, -70, 0.13f, aspectRatio, (2 + CRES) * 2 * 2 + 6);
+    generateHalfCircle(palmTree, -0.15f, 0.4f, false, -10, 0.12f, aspectRatio, (2 + CRES) * 2 * 3 + 6);
+    generateHalfCircle(palmTree, -0.15f, 0.4f, true, -50, 0.11f, aspectRatio, (2 + CRES) * 2 * 4 + 6);
+}
+
+void generateClouds(float circleVerticesCloud[], float aspectRatio) {
+    float cloudRadius = 0.1f;
+    const int numClouds = 9;
+    const int numCloudCirclesCloud = 5 * numClouds;  //5 kruznica zam svaki oblak
+    float cloudCircleCenters[numCloudCirclesCloud][2] = {};
+
+    for (int i = 0; i < numClouds; i++) {
+        cloudCircleCenters[i * 5][0] = -2.52f + 0.6 * i;
+        cloudCircleCenters[i * 5][1] = 0.85f - 0.3f * (i % 2);
+
+        cloudCircleCenters[i * 5 + 1][0] = -2.6f + 0.6 * i;
+        cloudCircleCenters[i * 5 + 1][1] = 0.8f - 0.3f * (i % 2);
+
+        cloudCircleCenters[i * 5 + 2][0] = -2.43f + 0.6 * i;
+        cloudCircleCenters[i * 5 + 2][1] = 0.8f - 0.3f * (i % 2);
+
+        cloudCircleCenters[i * 5 + 3][0] = -2.55f + 0.6 * i;
+        cloudCircleCenters[i * 5 + 3][1] = 0.74f - 0.3f * (i % 2);
+
+        cloudCircleCenters[i * 5 + 4][0] = -2.48f + 0.6 * i;
+        cloudCircleCenters[i * 5 + 4][1] = 0.74f - 0.3f * (i % 2);
+    }
+
+    for (int i = 0; i < numCloudCirclesCloud; ++i) {
+        generateCircle(circleVerticesCloud, cloudCircleCenters[i][0], cloudCircleCenters[i][1], cloudRadius, aspectRatio, (2 + CRES) * 2 * i);
+    }
+}
+
 void generateCircle(float circle[], float centerX, float centerY, float radius, float aspectRatio, int beg) {
     circle[beg] = centerX; // Center X
     circle[beg + 1] = centerY; // Center Y
@@ -578,7 +507,8 @@ void generateCircle(float circle[], float centerX, float centerY, float radius, 
         circle[beg + 2 + 2 * i + 1] = centerY + radius * sin(angle); // Yi
     }
 }
-void generateFireCircle(float circle[], float centerX, float centerY, float radius, float aspectRatio, int beg) {
+
+void generateFire(float circle[], float centerX, float centerY, float radius, float aspectRatio, int beg) {
     circle[beg] = centerX; // Center X
     circle[beg + 1] = centerY + radius*2; // Center Y
     for (int i = 0; i <= CRES; i++) {
@@ -592,7 +522,6 @@ void generateHalfCircle(float vec[], float x0, float y0, bool side, float angleO
     float angle = (angleOffset + (0 / float(CRES)) * 180.0) * M_PI / 180.0;
     float x_offset = radius * cos(angle) / aspectRatio;
     float y_offset = radius * sin(angle);
-
 
     if (side) {
         x0 -= x_offset;
@@ -623,16 +552,30 @@ void generateEllipse(float ellipse[], float centerX, float centerY, float radius
     }
 }
 
-
 void generateFish(float fishX, float fishY, float fishWidth, float fishHeight, float fishVertices[], int beg) {
     fishVertices[beg] = fishX - fishWidth;
     fishVertices[beg + 1] = fishY - fishHeight;
-
     fishVertices[beg + 2] = fishX + fishWidth;
     fishVertices[beg + 3] = fishY - fishHeight;
-
-
     fishVertices[beg + 4] = fishVertices[beg];
     fishVertices[beg + 5] = fishY;
+}
 
+void updateFishPosition(float fishVertices[], int verticesCount, float speed){
+    glBufferData(GL_ARRAY_BUFFER, verticesCount, fishVertices, GL_STATIC_DRAW);
+    if (cos(glfwGetTime() * speed) < 0) {
+        fishVertices[4] = fishVertices[0];
+        fishVertices[12 + 4] = fishVertices[12];
+        fishVertices[18 + 4] = fishVertices[18];
+    }else {
+        fishVertices[4] = fishVertices[2];
+        fishVertices[12 + 4] = fishVertices[12 + 2];
+        fishVertices[18 + 4] = fishVertices[18 + 2];
+    }
+
+    if (sin(glfwGetTime() * speed) > 0) {
+        fishVertices[6 + 4] = fishVertices[6];
+    } else {
+        fishVertices[6 + 4] = fishVertices[6 + 2];
+    }
 }
