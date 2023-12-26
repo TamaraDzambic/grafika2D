@@ -1,5 +1,5 @@
 # Projekat 12 - Ostrva
-##2D
+## 2D
 Nacrtati pejzaž mora sa par ostrva. Nivo vode se mijenja tokom vremena. Na najvećem ostrvu
 se nalazi palma i vatra. Plamen mijenja veličinu i boju tokom vremena. Aplikacija se pokreće
 preko čitavog ekrana, a zatvara tasterom ESCAPE. Sunce se vidi na plavom nebu, i kreće se
@@ -13,7 +13,7 @@ vrijeme što ubrzava/usporava sve u sceni. Taster R vraća vrijeme na početnu v
 1 prikazuje cijelu scenu preko tjemena, 2 preko ivica a 3 preko površina (default).
 U proizvoljnom uglu ekrana napisati ime, prezime i indeks
 
-##3D
+## 3D
 Proširiti scenu na 3D sledećim stavkama (Prethodne funkcionalnosti projekta su i dalje
 zadržane osim ukoliko ih naredne stavke ne mijenjaju):
 - Broj indeksa, Ime i prezime studenta učitati kao providnu teksturu i smjestiti u ćošak

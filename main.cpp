@@ -87,8 +87,8 @@ int main(void)
 
     //sun and moon
     float circles[((2 + CRES) * 2) * 2];
-    generateCircle(circles, 0.0f, 0.0f, 0.15f, aspectRatio, 0);
-    generateCircle(circles, 0.0f, 0.0f, 0.1f, aspectRatio, (2 + CRES) * 2);
+    generateCircle(circles, 0.0f, 0.0f, 0.1f, aspectRatio, 0);
+    generateCircle(circles, 0.0f, 0.0f, 0.15f, aspectRatio, (2 + CRES) * 2);
     initialize(VAO[1], VBO[1], circles, sizeof(circles));
 
     // sea
@@ -154,7 +154,7 @@ int main(void)
     GLuint cloudPosLoc = glGetUniformLocation(unifiedShader, "cloudCircleCenter");
 
     GLuint elementMode = glGetUniformLocation(unifiedShader, "mode");
-    GLuint bgMode = glGetUniformLocation(unifiedShader, "bgMode");
+    GLuint isSun = glGetUniformLocation(unifiedShader, "isSun");
     GLuint isLeaf = glGetUniformLocation(unifiedShader, "isLeaf");
     GLuint useTextureLoc = glGetUniformLocation(unifiedShader, "useTexture");
     clock_t lastKeyPressTime = clock();
@@ -220,19 +220,20 @@ int main(void)
 
         //sky        
         glBindVertexArray(VAO[0]);
-        glUniform1i(elementMode, 1);
-        glUniform1i(bgMode, 0);
+        glUniform1i(elementMode, 0);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         //sun, moon
         glBindVertexArray(VAO[1]);
-        glUniform1i(bgMode, 1);
-        glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
-        glUniform2f(sunPosLoc, r * sin(glfwGetTime() * speed), r * (cos(glfwGetTime() * speed)));
-        glUniform1i(bgMode, 2);
+        glUniform1i(elementMode, 1);
+        glUniform1i(isSun, GL_FALSE);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
-        glUniform2f(sunPosLoc, r * sin(glfwGetTime() * speed + M_PI), r * (cos(glfwGetTime() * speed + M_PI)));
+        glUniform2f(sunPosLoc, r * sin(glfwGetTime() * speed), r * (cos(glfwGetTime() * speed)));
 
+        glUniform1i(isSun, GL_TRUE);
+        glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
+        glUniform2f(sunPosLoc, r * sin(glfwGetTime() * speed + M_PI), r * (cos(glfwGetTime() * speed + M_PI)));
+       
         //sea 
         glBindVertexArray(VAO[2]);
         glUniform1i(elementMode, 2);
@@ -246,8 +247,7 @@ int main(void)
 
         //fishes
         glBindVertexArray(VAO[8]);
-        glUniform1i(elementMode, 2);
-        glUniform1i(bgMode, 1);
+        glUniform1i(elementMode, 8);
         updateFishPosition(fishVertices, sizeof(fishVertices), speed);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glUniform2f(seaPosLoc, 0.6 * cos(glfwGetTime() * speed), 0.1 * sin(glfwGetTime() * speed));
@@ -287,9 +287,7 @@ int main(void)
         // fire
         glBindVertexArray(VAO[6]);
         glUniform1i(elementMode, 6);
-        glUniform1i(bgMode, 1);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
-        glUniform1i(bgMode, 2);
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
         glUniform1f(firePosLoc, 1.2 + 0.3 * sin(glfwGetTime() * speed));
 
