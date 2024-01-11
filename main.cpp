@@ -11,42 +11,24 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include "shader.hpp"
+#include "model.hpp"
 
 #include <cmath>
 #define M_PI 3.14159265358979323846
 #define _CRT_SECURE_NO_WARNINGS
 #define CRES 30 
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+
 
 unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource); 
+
 static unsigned loadImageToTexture(const char* filePath); 
-
-
-void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture) {
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, verticesCount, vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, indexTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
+void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture);
 
 int main(void)
 {
@@ -81,8 +63,13 @@ int main(void)
         return 3;
     }
 
+
+
     //shader and buffers
-    unsigned int unifiedShader = createShader("basic.vert", "basic.frag");
+    Shader unifiedShader("basic.vert", "basic.frag");
+    unifiedShader.use();
+
+
 
     unsigned int VAO[9];
     glGenVertexArrays(9, VAO);
@@ -122,18 +109,18 @@ int main(void)
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(3);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
     // sea
     float seaVerticex[]  = {
-         1.0, 0.0, 1.0, 
-         1.0, 0.0, -1.0, 
-        -1.0, 0.0, 1.0,  
-        -1.0, 0.0, -1.0, 
+         5.0, 0.0, 5.0, 
+         5.0, 0.0, -5.0, 
+        -5.0, 0.0, 5.0,  
+        -5.0, 0.0, -5.0, 
     };
     glBindVertexArray(VAO[2]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
@@ -166,58 +153,331 @@ int main(void)
 
    
     // fishes
-
+    Model fish("res/uploads_files_3373269_shark.obj");
+    float currentTime = 0.0f;
 
 
 
     // ++++++++++++++++++++++++++++++++++++++++++++++++++++++            UNIFORME            +++++++++++++++++++++++++++++++++++++++++++++++++
 
     glm::mat4 model = glm::mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
-    unsigned int modelLoc = glGetUniformLocation(unifiedShader, "uM");
-
+    unifiedShader.setMat4("uM", model);
     glm::mat4 view; //Matrica pogleda (kamere)
-    glm::vec3 camPosition = glm::vec3(1.0f, 1.0f, 2.0f);
+
+    glm::vec3 camPosition = glm::vec3(1.0f, 1.0f, 8.6f);
     glm::vec3 camOrientation = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 camRotation = glm::vec3(0.0f, 1.0f, 0.0f);
 
     view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
     
     
-    unsigned int viewLoc = glGetUniformLocation(unifiedShader, "uV");
+    unifiedShader.setMat4("uV", view);
 
 
-    glm::mat4 projectionP = glm::perspective(glm::radians(45.0f), (float)mode -> width / (float)mode ->height, -0.5f, 0.5f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
+    glm::mat4 projectionP = glm::perspective(glm::radians(45.0f), (float) aspectRatio, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
     glm::mat4 projectionO = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); //Matrica ortogonalne projekcije (Lijeva, desna, donja, gornja, prednja i zadnja ravan)
-    unsigned int projectionLoc = glGetUniformLocation(unifiedShader, "uP");
+    unifiedShader.setMat4("uP", projectionO);
 
 
-    GLuint useTextureLoc = glGetUniformLocation(unifiedShader, "useTexture");
-    GLuint modeLoc = glGetUniformLocation(unifiedShader, "mode");
+
+
     clock_t lastKeyPressTime = clock();
 
-    glUseProgram(unifiedShader);
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); //(Adresa matrice, broj matrica koje saljemo, da li treba da se transponuju, pokazivac do matrica)
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionO));
+    unifiedShader.setVec3("uLightPos", 0, 1, 3);
+    unifiedShader.setVec3("uViewPos", 0, 0, 5);
+    unifiedShader.setVec3("uLightColor", 1, 1, 1);
 
-
-
-
-    float speed = 0.01;
+    float speed = 0.001;
     float r = 1.0;
-
+    unifiedShader.setBool("useTexture", false);
+    unifiedShader.setInt("mode", 0);
+    unifiedShader.setFloat("time", currentTime);
+    unifiedShader.setFloat("rotationSpeed", speed);
     while (!glfwWindowShouldClose(window))
     {
-
 
         glEnable(GL_DEPTH_TEST);
         glCullFace(GL_BACK);
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Osvjezavamo i Z bafer i bafer boje
 
-        handleInput(window, width, height, camPosition, camPosition, camRotation, view, viewLoc);
+        bool speedKeyPressed = false;
+       
+        bool firstClick = true;
+        float sensitivity = 100.0f;
 
-        glUniform1i(useTextureLoc, GL_FALSE);
+
+
+        // handle keyboard input: A S D W, UP DOWN LEFT RIGHT,  O P,  + - R,  1 2 3, esc
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camPosition = glm::vec3(camPosition.x - 0.1, camPosition.y, camPosition.z);
+                camOrientation = glm::vec3(camOrientation.x - 0.1, camOrientation.y, camOrientation.z);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+            }
+
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camPosition = glm::vec3(camPosition.x + 0.1, camPosition.y, camPosition.z);
+                camOrientation = glm::vec3(camOrientation.x + 0.1, camOrientation.y, camOrientation.z);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+
+        }
+
+
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+
+
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camPosition = glm::vec3(camPosition.x, camPosition.y + 0.1, camPosition.z);
+                camOrientation = glm::vec3(camOrientation.x, camOrientation.y + 0.1, camOrientation.z);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+        }
+
+
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camPosition = glm::vec3(camPosition.x, camPosition.y - 0.1, camPosition.z);
+                camOrientation = glm::vec3(camOrientation.x, camOrientation.y - 0.1, camOrientation.z);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
+
+
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camPosition = glm::vec3(camPosition.x, camPosition.y, camPosition.z + 0.1);
+                camOrientation = glm::vec3(camOrientation.x, camOrientation.y, camOrientation.z + 0.1);
+
+
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+        }
+
+
+        if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camPosition = glm::vec3(camPosition.x, camPosition.y, camPosition.z - 0.1);
+                camOrientation = glm::vec3(camOrientation.x, camOrientation.y, camOrientation.z - 0.1);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camOrientation = glm::vec3(camOrientation.x - 0.1, camOrientation.y, camOrientation.z);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+        }
+
+
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camOrientation = glm::vec3(camOrientation.x + 0.1, camOrientation.y, camOrientation.z);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+        }
+
+
+
+        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camOrientation = glm::vec3(camOrientation.x , camOrientation.y + 0.1, camOrientation.z);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+        }
+
+
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                speedKeyPressed = true;  // Set the flag to true to indicate key press
+                lastKeyPressTime = currentTime;  // Update the last key press time
+                camOrientation = glm::vec3(camOrientation.x , camOrientation.y - 0.1, camOrientation.z);
+                view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+                unifiedShader.setMat4("uV", view);
+
+            }
+        }
+
+
+
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, GL_TRUE);
+        }
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_1) == GLFW_PRESS)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+            glEnable(GL_PROGRAM_POINT_SIZE);
+            glPointSize(4);
+        }
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+        if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_3) == GLFW_PRESS)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS)
+        {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                if (speed <= 2.0) {
+                    speed += 0.2;
+                    speedKeyPressed = true;  // Set the flag to true to indicate key press
+                    lastKeyPressTime = currentTime;  // Update the last key press time
+                }
+            }
+   
+        }
+        if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS)
+        {
+            clock_t currentTime = clock();
+            double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
+
+            if (!speedKeyPressed && elapsedTime > 0.01) {
+                if (speed >= 0.2) {
+                    speed -= 0.2;
+                    speedKeyPressed = true;  // Set the flag to true to indicate key press
+                    lastKeyPressTime = currentTime;  // Update the last key press time
+                }
+            }
+        }
+        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+        {
+            speed = 1.0;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+        {
+            std::cout << camPosition.x << " cam pos x " << camOrientation.x << " cam ori x" << std::endl;
+            std::cout << camPosition.y << " cam pos y " << camOrientation.y << " cam ori y" << std::endl;
+            std::cout << camPosition.z << " cam pos z " << camOrientation.z << " cam ori z" << std::endl;
+
+        }
+
+        //Mijenjanje projekcija
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+        {
+            camPosition = glm::vec3(2.8f, 5.6f, 8.6f);
+            camOrientation = glm::vec3(2.1f, 4.1f, 6.6f);
+            camRotation = glm::vec3(0.0f, 1.0f, 0.0f);
+
+            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+
+            unifiedShader.setMat4("uV", view);
+
+            unifiedShader.setMat4("uP", projectionP);
+        }
+        if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+        {
+            camPosition = glm::vec3(10.0f,10.0f, 8.6f);
+            camOrientation = glm::vec3(0.0f, 0.0f, 0.0f);
+            camRotation = glm::vec3(0.0f, 1.0f, 0.0f);
+
+            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
+
+
+            unifiedShader.setMat4("uV", view);
+            unifiedShader.setMat4("uP", projectionO);
+
+        }
+
+
+
+        //Testiranje dubine
+        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
+        {
+            glEnable(GL_DEPTH_TEST); //Ukljucivanje testiranja Z bafera
+        }
+        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS)
+        {
+            glDisable(GL_DEPTH_TEST);
+        }
+
+        //Odstranjivanje lica (Prethodno smo podesili koje lice uklanjamo sa glCullFace)
+        if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_7) == GLFW_PRESS)
+        {
+            glEnable(GL_CULL_FACE);
+        }
+        if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
+        {
+            glDisable(GL_CULL_FACE);
+        }
+
+
 
 
         ////sky 
@@ -226,13 +486,11 @@ int main(void)
         //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         //sun, moon
-        glBindVertexArray(VAO[1]);
-        glUniform1i(modeLoc, 12);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+
 
         //sea 
         glBindVertexArray(VAO[2]);
-        glUniform1i(modeLoc, 2);
+        unifiedShader.setInt("mode", 2);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         //island1 
@@ -251,16 +509,22 @@ int main(void)
 
 
         // index texture
-        glUniform1i(modeLoc, 3);
+        unifiedShader.setInt("mode", 3);
 
         glBindVertexArray(VAO[3]);
-        glUniform1i(useTextureLoc, GL_TRUE);
+        unifiedShader.setBool("useTexture", true);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        glUniform1i(useTextureLoc, GL_FALSE);
+        unifiedShader.setBool("useTexture", false);
 
+        unifiedShader.setInt("mode", 8);
+
+
+        fish.Draw(unifiedShader);
+        currentTime += 1;
+        unifiedShader.setFloat("time", currentTime);
 
         //swap
         glfwSwapBuffers(window);
@@ -271,7 +535,7 @@ int main(void)
     glDeleteTextures(1, &indexTexture);
     glDeleteBuffers(1, VBO);
     glDeleteVertexArrays(1, VAO);
-    glDeleteProgram(unifiedShader);
+    glDeleteProgram(unifiedShader.ID);
     glfwTerminate();
     return 0;
 }
@@ -386,298 +650,22 @@ static unsigned loadImageToTexture(const char* filePath) {
     }
 }
 
-void handleInput(GLFWwindow *window, float width, float height, glm::vec3 *camPosition, glm::vec3 *camOrientation, glm::vec3 *camRotation, glm::vec3 *view, int viewLoc) {
-    bool speedKeyPressed = false;
-
-    bool firstClick = true;
-    float sensitivity = 100.0f;
-
-
-
-
-    // Handles mouse inputs
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-    {
-        // Hides mouse cursor
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-
-        // Prevents camera from jumping on the first click
-        if (firstClick)
-        {
-            glfwSetCursorPos(window, (width / 2), (height / 2));
-            firstClick = false;
-        }
-
-        // Stores the coordinates of the cursor
-        double mouseX;
-        double mouseY;
-        // Fetches the coordinates of the cursor
-        glfwGetCursorPos(window, &mouseX, &mouseY);
-
-        // Normalizes and shifts the coordinates of the cursor such that they begin in the middle of the screen
-        // and then "transforms" them into degrees 
-        float rotY = sensitivity * (float)(mouseY - (height / 2)) / height;
-        float rotX = sensitivity * (float)(mouseX - (width / 2)) / width;
-
-        camOrientation = glm::vec3(camOrientation.x + rotX, camOrientation.y - rotY, camOrientation.z);
-        view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-
-        // Sets mouse cursor to the middle of the screen so that it doesn't end up roaming around
-        glfwSetCursorPos(window, (width / 2), (height / 2));
-    }
-    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
-    {
-        // Unhides cursor since camera is not looking around anymore
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        // Makes sure the next time the camera looks around it doesn't jump
-        firstClick = true;
-    }
-
-
-
-
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camPosition = glm::vec3(camPosition.x - 0.1, camPosition.y, camPosition.z);
-            camOrientation = glm::vec3(camOrientation.x - 0.1, camOrientation.y, camOrientation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camPosition = glm::vec3(camPosition.x + 0.1, camPosition.y, camPosition.z);
-            camOrientation = glm::vec3(camOrientation.x + 0.1, camOrientation.y, camOrientation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-
-    }
-
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-
-
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camPosition = glm::vec3(camPosition.x, camPosition.y + 0.1, camPosition.z);
-            camOrientation = glm::vec3(camOrientation.x, camOrientation.y + 0.1, camOrientation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-    }
-
-
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camPosition = glm::vec3(camPosition.x, camPosition.y - 0.1, camPosition.z);
-            camOrientation = glm::vec3(camOrientation.x, camOrientation.y - 0.1, camOrientation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camOrientation = glm::vec3(camOrientation.x - 0.1, camOrientation.y, camOrientation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-    }
-
-
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camOrientation = glm::vec3(camOrientation.x + 0.1, camOrientation.y, camOrientation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-    }
-
-
-
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camOrientation = glm::vec3(camOrientation.x, camOrientation.y + 0.1, camOrientation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-    }
-
-
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camOrientation = glm::vec3(camOrientation.x, camOrientation.y - 0.1, camOrientation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-    }
-
-
-    if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS) {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camRotation = glm::vec3(camRotation.x + 0.1, camRotation.y, camRotation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-        }
-    }
-
-
-
-    if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.2) {
-            speedKeyPressed = true;  // Set the flag to true to indicate key press
-            lastKeyPressTime = currentTime;  // Update the last key press time
-            camRotation = glm::vec3(camRotation.x - 0.1, camRotation.y, camRotation.z);
-            view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-            glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-            std::cout << camRotation.x << std::endl;
-        }
-    }
-
-
-
-
-
-    // tasters
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(window, GL_TRUE);
-    }
-    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_1) == GLFW_PRESS)
-    {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-        glEnable(GL_PROGRAM_POINT_SIZE);
-        glPointSize(4);
-    }
-    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS)
-    {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_3) == GLFW_PRESS)
-    {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-    if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS)
-    {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.1) {
-            if (speed <= 2.0) {
-                speed += 0.2;
-                speedKeyPressed = true;  // Set the flag to true to indicate key press
-                lastKeyPressTime = currentTime;  // Update the last key press time
-            }
-        }
-
-    }
-    if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS)
-    {
-        clock_t currentTime = clock();
-        double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
-
-        if (!speedKeyPressed && elapsedTime > 0.1) {
-            if (speed >= 0.2) {
-                speed -= 0.2;
-                speedKeyPressed = true;  // Set the flag to true to indicate key press
-                lastKeyPressTime = currentTime;  // Update the last key press time
-            }
-        }
-    }
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-    {
-        speed = 1.0;
-    }
-    //Testiranje dubine
-    if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
-    {
-        glEnable(GL_DEPTH_TEST); //Ukljucivanje testiranja Z bafera
-    }
-    if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS)
-    {
-        glDisable(GL_DEPTH_TEST);
-    }
-
-    //Odstranjivanje lica (Prethodno smo podesili koje lice uklanjamo sa glCullFace)
-    if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_7) == GLFW_PRESS)
-    {
-        glEnable(GL_CULL_FACE);
-    }
-    if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
-    {
-        glDisable(GL_CULL_FACE);
-    }
-
-    //Mijenjanje projekcija
-    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-    {
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionP));
-    }
-    if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-    {
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projectionO));
-    }
+void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture) {
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, verticesCount, vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, indexTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
-

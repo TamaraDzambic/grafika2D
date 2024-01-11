@@ -2,11 +2,17 @@
 
 //Kanali (in, out, uniform)
 layout(location = 0) in vec3 inPos; //Pozicija tjemena
-layout(location = 1) in vec4 inCol; //Boja tjemena - ovo saljemo u fragment sejder
-layout(location = 2) in vec2 inTex;   // Texture coordinates
+layout (location = 1) in vec3 inNormal;
+layout (location = 2) in vec2 inUV;
+layout(location = 3) in vec4 inCol; //Boja tjemena - ovo saljemo u fragment sejder
+layout(location = 4) in vec2 inTex;   // Texture coordinates
 
 out vec4 channelCol; //Izlazni kanal kroz koji saljemo boju do fragment sejdera
 out vec2 texCoord;
+
+out vec3 chFragPos;
+out vec3 chNormal;
+out vec2 chUV;
 
 uniform vec2 sunPos;
 uniform vec2 seaPos;
@@ -23,6 +29,10 @@ uniform int mode; //0 sky, 1 sun and moon, 2 sea, 3 texture, 4 islands, 5 palmtr
 uniform bool isSun; // 1 sun, 2 moon
 uniform bool isLeaf;
 
+uniform float time;  // Declare the time uniform
+uniform float rotationSpeed; // Declare the rotation speed uniform
+
+
 void main() 
 {
     switch (mode) {
@@ -35,8 +45,8 @@ void main()
             break;
         
         case 2:
-             gl_Position = uP * uV * uM * vec4(inPos, 1.0);
-            channelCol = vec4(0.0,0.0,0.1,1.0);
+            gl_Position = uP * uV * uM * vec4(inPos, 1.0);
+            channelCol = vec4(0.0,0.0,1.0,1.0);
             break;
         
         case 3:
@@ -55,12 +65,49 @@ void main()
         
         case 7:
            break;
-        
-        case 8:
-            break;
-        
+case 8:
+    chUV = inUV;
+
+    // Scale the model to three sizes smaller
+    mat4 scaledModel = uM * mat4(vec4(0.2, 0.0, 0.0, 0.0),
+                                vec4(0.0, 0.2, 0.0, 0.0),
+                                vec4(0.0, 0.0, 0.2, 0.0),
+                                vec4(0.0, 0.0, 0.0, 1.0));
+
+    // Calculate the angle of rotation based on time or any other variable
+    float angle = time * rotationSpeed;  // You need to define rotationSpeed and time in your shader
+
+    // Create a rotation matrix around the y-axis
+    mat4 rotationMatrix = mat4(cos(angle), 0.0, sin(angle), 0.0,
+                               0.0, 1.0, 0.0, 0.0,
+                               -sin(angle), 0.0, cos(angle), 0.0,
+                               -sin(angle), 0.0, cos(angle), 1.0);
+
+    // Translation to the point (1, 0, 1) in the x-z plane
+    mat4 translationMatrix = mat4(vec4(1.0, 0.0, 0.0, 0.0),
+                                  vec4(0.0, 1.0, 0.0, 0.0),
+                                  vec4(0.0, 0.0, 1.0, 0.0),
+                                  vec4(1.0, -0.15, 1.0, 1.0));
+
+    // Combine the translation, rotation, and scale transformations
+    mat4 finalModel = translationMatrix * rotationMatrix * scaledModel;
+
+    chFragPos = vec3(finalModel * vec4(inPos, 1.0));
+    chNormal = mat3(transpose(inverse(finalModel))) * inNormal;
+
+    // Calculate the final vertex position in clip space
+    gl_Position = uP * uV * vec4(chFragPos, 1.0);
+
+    // Set the output color
+    channelCol = vec4(0.2, 0.2, 0.2, 1.0);
+    break;
         default:
-            gl_Position = uP * uV * uM * vec4(inPos, 1.0);
+            chUV = inUV;
+            chFragPos = vec3(uM * vec4(inPos, 1.0));
+            chNormal = mat3(transpose(inverse(uM))) * inNormal;  
+    
+
+            gl_Position = uP * uV * vec4(inPos, 1.0);
             channelCol = inCol;
     }
 }
