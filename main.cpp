@@ -117,16 +117,20 @@ int main(void)
 
     // sea
     float seaVerticex[]  = {
-         5.0, 0.0, 5.0, 
-         5.0, 0.0, -5.0, 
-        -5.0, 0.0, 5.0,  
-        -5.0, 0.0, -5.0, 
+    -5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f,
+     5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f,
+     5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
+     5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
+    -5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
+    -5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f
     };
     glBindVertexArray(VAO[2]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(seaVerticex), seaVerticex, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
 
     // index texture
@@ -154,6 +158,7 @@ int main(void)
    
     // fishes
     Model fish("res/uploads_files_3373269_shark.obj");
+    Model fish2("res/uploads_files_3373269_shark.obj");
     float currentTime = 0.0f;
 
 
@@ -191,8 +196,7 @@ int main(void)
     float r = 1.0;
     unifiedShader.setBool("useTexture", false);
     unifiedShader.setInt("mode", 0);
-    unifiedShader.setFloat("time", currentTime);
-    unifiedShader.setFloat("rotationSpeed", speed);
+
     while (!glfwWindowShouldClose(window))
     {
 
@@ -457,28 +461,6 @@ int main(void)
 
 
 
-        //Testiranje dubine
-        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
-        {
-            glEnable(GL_DEPTH_TEST); //Ukljucivanje testiranja Z bafera
-        }
-        if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS)
-        {
-            glDisable(GL_DEPTH_TEST);
-        }
-
-        //Odstranjivanje lica (Prethodno smo podesili koje lice uklanjamo sa glCullFace)
-        if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_7) == GLFW_PRESS)
-        {
-            glEnable(GL_CULL_FACE);
-        }
-        if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
-        {
-            glDisable(GL_CULL_FACE);
-        }
-
-
-
 
         ////sky 
         //glBindVertexArray(VAO[0]);
@@ -491,12 +473,55 @@ int main(void)
         //sea 
         glBindVertexArray(VAO[2]);
         unifiedShader.setInt("mode", 2);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         //island1 
 
 
         //fishes
+
+        //big fish
+        unifiedShader.setInt("mode", 8);
+        currentTime += 1;
+        float angle = currentTime * speed;
+        glm::mat4 translationMatrix = glm::mat4(
+            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+            glm::vec4(1.0f, -0.3f, 1.0f, 1.0f)
+        );
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        glm::mat4 rotationMatrix = glm::mat4(
+            glm::vec4(cos(angle), 0.0f, sin(angle), 0.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(-sin(angle), 0.0f, cos(angle), 0.0f),
+            glm::vec4(-sin(angle) * 2.5, 0.0f, cos(angle) * 2.5, 1.0f)
+        );
+        unifiedShader.setMat4("rotationMatrix", rotationMatrix);
+        unifiedShader.setFloat("scale", 0.4);
+
+        fish.Draw(unifiedShader);
+
+        //small fish
+        glm::mat4 translationMatrix2 = glm::mat4(
+            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+            glm::vec4(-2.7f, -0.15f, -3.0f, 1.0f)
+        );
+        unifiedShader.setMat4("translationMatrix", translationMatrix2);
+        glm::mat4 rotationMatrix2 = glm::mat4(
+            glm::vec4(-cos(angle), 0.0f, -sin(angle), 0.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(sin(angle), 0.0f, -cos(angle), 0.0f),
+            glm::vec4(sin(angle) * 1.2, 0.0f, -cos(angle) * 1.2, 1.0f)
+        );
+        unifiedShader.setMat4("rotationMatrix", rotationMatrix2);
+        unifiedShader.setFloat("scale", 0.2);
+
+        fish2.Draw(unifiedShader);
+
+
 
 
         //island2
@@ -519,12 +544,9 @@ int main(void)
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         unifiedShader.setBool("useTexture", false);
 
-        unifiedShader.setInt("mode", 8);
+        
 
 
-        fish.Draw(unifiedShader);
-        currentTime += 1;
-        unifiedShader.setFloat("time", currentTime);
 
         //swap
         glfwSwapBuffers(window);

@@ -29,9 +29,10 @@ uniform int mode; //0 sky, 1 sun and moon, 2 sea, 3 texture, 4 islands, 5 palmtr
 uniform bool isSun; // 1 sun, 2 moon
 uniform bool isLeaf;
 
-uniform float time;  // Declare the time uniform
-uniform float rotationSpeed; // Declare the rotation speed uniform
 
+uniform mat4 rotationMatrix;
+uniform mat4 translationMatrix;
+uniform float scale;
 
 void main() 
 {
@@ -69,25 +70,10 @@ case 8:
     chUV = inUV;
 
     // Scale the model to three sizes smaller
-    mat4 scaledModel = uM * mat4(vec4(0.2, 0.0, 0.0, 0.0),
-                                vec4(0.0, 0.2, 0.0, 0.0),
-                                vec4(0.0, 0.0, 0.2, 0.0),
+    mat4 scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
+                                vec4(0.0, scale, 0.0, 0.0),
+                                vec4(0.0, 0.0, scale, 0.0),
                                 vec4(0.0, 0.0, 0.0, 1.0));
-
-    // Calculate the angle of rotation based on time or any other variable
-    float angle = time * rotationSpeed;  // You need to define rotationSpeed and time in your shader
-
-    // Create a rotation matrix around the y-axis
-    mat4 rotationMatrix = mat4(cos(angle), 0.0, sin(angle), 0.0,
-                               0.0, 1.0, 0.0, 0.0,
-                               -sin(angle), 0.0, cos(angle), 0.0,
-                               -sin(angle), 0.0, cos(angle), 1.0);
-
-    // Translation to the point (1, 0, 1) in the x-z plane
-    mat4 translationMatrix = mat4(vec4(1.0, 0.0, 0.0, 0.0),
-                                  vec4(0.0, 1.0, 0.0, 0.0),
-                                  vec4(0.0, 0.0, 1.0, 0.0),
-                                  vec4(1.0, -0.15, 1.0, 1.0));
 
     // Combine the translation, rotation, and scale transformations
     mat4 finalModel = translationMatrix * rotationMatrix * scaledModel;
