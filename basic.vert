@@ -15,7 +15,7 @@ out vec3 chNormal;
 out vec2 chUV;
 
 uniform vec2 sunPos;
-uniform vec2 seaPos;
+uniform float seaPos;
 uniform vec2 cloudCircleCenter;
 uniform int fishPos;
 uniform float firePos;
@@ -46,20 +46,6 @@ void main()
             break;
         
         case 2:
-            gl_Position = uP * uV * uM * vec4(inPos, 1.0);
-            channelCol = vec4(0.0,0.0,1.0,1.0);
-            break;
-        
-        case 3:
-            gl_Position = vec4(inPos, 1.0);
-            texCoord = inTex;
-            break;
-        
-        case 4:
-            gl_Position = uP * uV * uM * vec4(inPos, 1.0);
-            channelCol = vec4(0.9, 0.8, 0.4, 1.0);
-            break;        
-        case 5:
             chUV = inUV;
 
             // Scale the model to three sizes smaller
@@ -71,7 +57,59 @@ void main()
             // Combine the translation, and scale transformations
             mat4 finalModel = translationMatrix * scaledModel;
 
-            chFragPos = vec3(finalModel * vec4(inPos, 1.0));
+            chFragPos = vec3(finalModel * vec4(inPos.x, inPos.y + seaPos, inPos.z, 1.0));
+
+            chNormal = mat3(transpose(inverse(finalModel))) * inNormal;
+
+            // Calculate the final vertex position in clip space
+            gl_Position = uP * uV * vec4(chFragPos, 1.0);
+            break;
+        
+        case 3:
+            gl_Position = vec4(inPos, 1.0);
+            texCoord = inTex;
+            break;
+        
+        case 4:
+          chUV = inUV;
+
+            // Scale the model to three sizes smaller
+            scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
+                                        vec4(0.0, scale, 0.0, 0.0),
+                                        vec4(0.0, 0.0, scale, 0.0),
+                                        vec4(0.0, 0.0, 0.0, 1.0));
+
+            // Combine the translation, and scale transformations
+            finalModel = translationMatrix * scaledModel;
+
+            vec3 newPos = inPos;
+            if (inPos.y < 0.5){
+                 newPos = vec3(inPos.x, inPos.y - 3.0, inPos.z);   
+
+            }
+
+            chFragPos = vec3(finalModel * vec4(newPos, 1.0));   
+
+            chNormal = mat3(transpose(inverse(finalModel))) * inNormal;
+
+            // Calculate the final vertex position in clip space
+            gl_Position = uP * uV * vec4(chFragPos, 1.0);
+
+
+            break;
+        case 5:
+            chUV = inUV;
+
+            // Scale the model to three sizes smaller
+            scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
+                                        vec4(0.0, scale, 0.0, 0.0),
+                                        vec4(0.0, 0.0, scale, 0.0),
+                                        vec4(0.0, 0.0, 0.0, 1.0));
+
+            // Combine the translation, and scale transformations
+            finalModel = translationMatrix * scaledModel;
+
+            chFragPos = vec3(finalModel * vec4(inPos, 1.0));            
             chNormal = mat3(transpose(inverse(finalModel))) * inNormal;
 
             // Calculate the final vertex position in clip space
@@ -82,9 +120,9 @@ void main()
         
         case 6:
             vec3 targetPos = vec3(1.2, -0.1, 1.2);
-            float displacement = (inPos.y - targetPos.y) * firePos;
+            float displacement = (inPos.y - targetPos.y) * firePos + 0.1;
             if(inPos.y < 0.3){
-            displacement = inPos.y;
+                displacement = inPos.y + 0.1;
             }
 
             gl_Position = uP * uV * uM * vec4(inPos.x, displacement, inPos.z, 1.0);
@@ -130,7 +168,7 @@ void main()
             // Combine the translation, rotation, and scale transformations
             finalModel = translationMatrix * rotationMatrix * scaledModel;
 
-            chFragPos = vec3(finalModel * vec4(inPos, 1.0));
+            chFragPos = vec3(finalModel * vec4(inPos.x, inPos.y + seaPos*30.0, inPos.z, 1.0));
             chNormal = mat3(transpose(inverse(finalModel))) * inNormal;
 
             // Calculate the final vertex position in clip space
