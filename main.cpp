@@ -102,6 +102,25 @@ int main(void)
     glGenBuffers(9, VBO);
 
     //sky
+    float skyVerticex[] = {
+        -5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f,
+         5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f,
+         5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
+
+         5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
+        -5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
+        -5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f
+            };
+    glBindVertexArray(VAO[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyVerticex), skyVerticex, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+
+
 
     //sun and moon
 
@@ -137,7 +156,7 @@ int main(void)
 
 
     // islands
-    float islands[((2 + CRES) * 3) * 2];
+    float islands[((2 + CRES) * 3) * 2] = {};
     generateCircle(islands, 1.0f, 0.2f, 1.0f, 3.0f, aspectRatio, 0);
     generateCircle(islands, -2.7f, 0.1f, -3.0f, 1.0f, aspectRatio, (2 + CRES) * 3);
 
@@ -147,14 +166,11 @@ int main(void)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // palmtree
-    Model palmtree("res/palm/uploads_files_4607039_free_palm.obj");
-
 
     // fire
-    float fire[((2 + CRES) * 3) * 2];
+    float fire[((2 + CRES) * 3) * 2] = {};
     generateFire(islands, 1.3f, 0.6f, 1.3f, 0.2f, aspectRatio, 0);
-    generateFire(islands, 1.3f, -0.08f, 1.3f, 0.2f, aspectRatio, (2 + CRES) * 3);
+    generateFire(islands, 1.3f, -0.01f, 1.3f, 0.2f, aspectRatio, (2 + CRES) * 3);
 
     glBindVertexArray(VAO[6]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[6]);
@@ -162,13 +178,14 @@ int main(void)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // palmtree
+    Model palmtree("res/palm/palm.obj");
     // clouds
-
+    Model cloud("res/cloud/Cloud_Hipoly.obj");
    
     // fishes
-    Model fish("res/shark/uploads_files_3373269_shark.obj");
-    Model fish2("res/shark/uploads_files_3373269_shark.obj");
-    Model fish3("res/shark/uploads_files_3373269_shark.obj");
+    Model fish("res/shark/shark.obj");
+
     float currentTime = 0.0f;
 
 
@@ -179,21 +196,16 @@ int main(void)
     unifiedShader.setMat4("uM", model);
     glm::mat4 view; //Matrica pogleda (kamere)
 
-    glm::vec3 camPosition = glm::vec3(1.0f, 1.0f, 8.6f);
-    glm::vec3 camOrientation = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 camPosition = glm::vec3(2.69997f, 52.8998f, 68.5003f);
+    glm::vec3 camOrientation = glm::vec3(-0.400004f, -17.1f, -22.1f);
     glm::vec3 camRotation = glm::vec3(0.0f, 1.0f, 0.0f);
 
     view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-    
-    
     unifiedShader.setMat4("uV", view);
 
-
     glm::mat4 projectionP = glm::perspective(glm::radians(45.0f), (float) aspectRatio, 0.1f, 100.0f); //Matrica perspektivne projekcije (FOV, Aspect Ratio, prednja ravan, zadnja ravan)
-    glm::mat4 projectionO = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); //Matrica ortogonalne projekcije (Lijeva, desna, donja, gornja, prednja i zadnja ravan)
+    glm::mat4 projectionO = glm::ortho(-5.0f, 5.0f, -3.0f, 3.0f, -1.0f, 100.0f); //Matrica ortogonalne projekcije (Lijeva, desna, donja, gornja, prednja i zadnja ravan)
     unifiedShader.setMat4("uP", projectionO);
-
-
 
 
     clock_t lastKeyPressTime = clock();
@@ -210,8 +222,15 @@ int main(void)
     while (!glfwWindowShouldClose(window))
     {
 
+ 
+
+
+
         glEnable(GL_DEPTH_TEST);
+        //glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
+
+
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -437,12 +456,11 @@ int main(void)
         }
         if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
         {
-            camPosition = glm::vec3(10.0f,10.0f, 8.6f);
-            camOrientation = glm::vec3(0.0f, 0.0f, 0.0f);
+            camPosition = glm::vec3(2.69997f, 52.8998f, 68.5003f);
+            camOrientation = glm::vec3(-0.400004f, -17.1f, -22.1f);
             camRotation = glm::vec3(0.0f, 1.0f, 0.0f);
 
             view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-
 
             unifiedShader.setMat4("uV", view);
             unifiedShader.setMat4("uP", projectionO);
@@ -451,10 +469,11 @@ int main(void)
 
 
 
-        ////sky 
+        //sky 
         //glBindVertexArray(VAO[0]);
         //glUniform1i(modeLoc, 0);
         //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
 
         //sun, moon
 
@@ -472,6 +491,7 @@ int main(void)
 
 
         //fishes
+        unifiedShader.setBool("model", true);
 
             //big fish
         unifiedShader.setInt("mode", 8);
@@ -512,7 +532,7 @@ int main(void)
         unifiedShader.setMat4("rotationMatrix", rotationMatrix);
         unifiedShader.setFloat("scale", 0.2);
 
-        fish2.Draw(unifiedShader);
+        fish.Draw(unifiedShader);
 
         translationMatrix = glm::mat4(
             glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
@@ -530,8 +550,7 @@ int main(void)
         unifiedShader.setMat4("rotationMatrix", rotationMatrix);
         unifiedShader.setFloat("scale", 0.2);
 
-        fish3.Draw(unifiedShader);
-
+        fish.Draw(unifiedShader);
 
 
         //pamltree
@@ -544,19 +563,59 @@ int main(void)
         );
         unifiedShader.setMat4("translationMatrix", translationMatrix);
         unifiedShader.setFloat("scale", 0.25);
-        unifiedShader.setBool("model", true);
 
         palmtree.Draw(unifiedShader);
         unifiedShader.setBool("model", false);
+
+        // clouds
+       unifiedShader.setInt("mode", 7);
+          
+       glm::vec4 cloudVec[] = { 
+           glm::vec4(-4.0f, 3.5f, -3.0f, 1.0f),
+           glm::vec4(-4.0f, 3.5f, 2.0f, 1.0f),
+           glm::vec4(-0.5f, 3.0f, 0.5f, 1.0f),
+           glm::vec4(4.0f, 3.5f, 0.0f, 1.0f),
+           glm::vec4(1.0f, 3.0f, 4.0f, 1.0f)
+       };
+       for (int i = 0; i < sizeof(cloudVec); ++i) {
+           float xTranslation = currentTime * speed;  // Adjust the speed and offset as needed
+
+           // Apply wrap-around logic
+           xTranslation = fmod(xTranslation, 5.0f);  // Wrap around when x > 10
+
+           // Modify the x-component of the cloud vector
+           float newx = cloudVec[i][0] -3.0f + xTranslation;
+
+           translationMatrix = glm::mat4(
+               glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+               glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+               glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+               glm::vec4(newx, cloudVec[i][1], cloudVec[i][2], cloudVec[i][3])
+           );
+           unifiedShader.setMat4("translationMatrix", translationMatrix);
+           unifiedShader.setFloat("scale", 0.2);
+           cloud.Draw(unifiedShader);
+       }
+
+
+
 
 
         // fire
         glBindVertexArray(VAO[6]);
         unifiedShader.setInt("mode", 6);
+        unifiedShader.setBool("fire", true);
+
         unifiedShader.setFloat("firePos", 1.2 + 0.3 * sin(glfwGetTime() * speed * 500));
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
 
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
+        unifiedShader.setBool("fire", false);
+
+
+
+
+
 
         // index texture
         unifiedShader.setInt("mode", 3);
