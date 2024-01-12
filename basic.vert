@@ -56,37 +56,70 @@ void main()
             break;
         
         case 4:
-            break;
-        
+            gl_Position = uP * uV * uM * vec4(inPos, 1.0);
+            channelCol = vec4(0.9, 0.8, 0.4, 1.0);
+            break;        
         case 5:
+            chUV = inUV;
+
+            // Scale the model to three sizes smaller
+            mat4 scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
+                                        vec4(0.0, scale, 0.0, 0.0),
+                                        vec4(0.0, 0.0, scale, 0.0),
+                                        vec4(0.0, 0.0, 0.0, 1.0));
+
+            // Combine the translation, and scale transformations
+            mat4 finalModel = translationMatrix * scaledModel;
+
+            chFragPos = vec3(finalModel * vec4(inPos, 1.0));
+            chNormal = mat3(transpose(inverse(finalModel))) * inNormal;
+
+            // Calculate the final vertex position in clip space
+            gl_Position = uP * uV * vec4(chFragPos, 1.0);
+
+
             break;
         
         case 6:
+            vec3 targetPos = vec3(1.2, -0.1, 1.2);
+            float displacement = (inPos.y - targetPos.y) * firePos;
+            if(inPos.y < 0.3){
+            displacement = inPos.y;
+            }
+
+            gl_Position = uP * uV * uM * vec4(inPos.x, displacement, inPos.z, 1.0);
+            vec4 redColor = vec4(1.0, 0.0, 0.0, 1.0);
+            vec4 yellowColor = vec4(1.0, 1.0, 0.0, 1.0);
+            float distance = length(inPos - targetPos);
+
+            channelCol = mix(yellowColor, redColor, smoothstep(firePos, 0, distance));
+
+
            break;
         
         case 7:
            break;
-case 8:
-    chUV = inUV;
+        case 8:
+            chUV = inUV;
 
-    // Scale the model to three sizes smaller
-    mat4 scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
-                                vec4(0.0, scale, 0.0, 0.0),
-                                vec4(0.0, 0.0, scale, 0.0),
-                                vec4(0.0, 0.0, 0.0, 1.0));
+            // Scale the model to three sizes smaller
+            scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
+                                        vec4(0.0, scale, 0.0, 0.0),
+                                        vec4(0.0, 0.0, scale, 0.0),
+                                        vec4(0.0, 0.0, 0.0, 1.0));
 
-    // Combine the translation, rotation, and scale transformations
-    mat4 finalModel = translationMatrix * rotationMatrix * scaledModel;
+            // Combine the translation, rotation, and scale transformations
+            finalModel = translationMatrix * rotationMatrix * scaledModel;
 
-    chFragPos = vec3(finalModel * vec4(inPos, 1.0));
-    chNormal = mat3(transpose(inverse(finalModel))) * inNormal;
+            chFragPos = vec3(finalModel * vec4(inPos, 1.0));
+            chNormal = mat3(transpose(inverse(finalModel))) * inNormal;
 
-    // Calculate the final vertex position in clip space
-    gl_Position = uP * uV * vec4(chFragPos, 1.0);
+            // Calculate the final vertex position in clip space
+            gl_Position = uP * uV * vec4(chFragPos, 1.0);
 
-    // Set the output color
-    channelCol = vec4(0.2, 0.2, 0.2, 1.0);
-    break;
+            // Set the output color
+            channelCol = vec4(0.2, 0.2, 0.2, 1.0);
+            break;
         default:
             chUV = inUV;
             chFragPos = vec3(uM * vec4(inPos, 1.0));

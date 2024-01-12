@@ -30,6 +30,31 @@ unsigned int createShader(const char* vsSource, const char* fsSource);
 static unsigned loadImageToTexture(const char* filePath); 
 void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture);
 
+void generateCircle(float circle[], float centerX, float centerY, float centerZ, float radius, float aspectRatio, int beg) {
+    circle[beg] = centerX; // Center X
+    circle[beg + 1] = centerY; // Center Y
+    circle[beg + 2] = centerZ; // Center Z
+    for (int i = 0; i <= CRES; i++) {
+        float angle = (M_PI / 180) * (i * 360.0 / CRES);
+        circle[beg + 3 + 3 * i] = centerX + radius * cos(angle); // Xi
+        circle[beg + 3 + 3 * i + 1] =  -0.1; // Yi
+        circle[beg + 3 + 3 * i + 2] = centerZ + radius * sin(angle); // Yi
+    }
+}
+
+void generateFire(float circle[], float centerX, float centerY, float centerZ, float radius, float aspectRatio, int beg) {
+    circle[beg] = centerX; // Center X
+    circle[beg + 1] = centerY; // Center Y
+    circle[beg + 2] = centerZ; // Center Z
+    for (int i = 0; i <= CRES; i++) {
+        float angle = (M_PI / 180) * (i * 360.0 / CRES);
+        circle[beg + 3 + 3 * i] = centerX + radius * cos(angle); // Xi
+        circle[beg + 3 + 3 * i + 1] = 0.2; // Yi
+        circle[beg + 3 + 3 * i + 2] = centerZ + radius * sin(angle); // Yi
+    }
+}
+
+
 int main(void)
 {
     //initialization
@@ -77,49 +102,16 @@ int main(void)
     glGenBuffers(9, VBO);
 
     //sky
-    float skyVerticex[] = {
-        -1.0, -1.0, -0.2,
-        1.0, -1.0, -0.2,
-        -1.0, 1.0, -0.2,
-        1.0, 1.0, -0.2,
-    }; 
-    glBindVertexArray(VAO[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyVerticex), skyVerticex, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+
     //sun and moon
 
-    float vertices[] =
-    {
-        //X    Y    Z       R    G    B    A
-        0.25, 0.5, 0.75,   1.0, 0.0, 0.0, 0.0, //Crveni trougao - Prednji
-       -0.25, 0.5, 0.75,   1.0, 0.0, 0.0, 0.0,
-        0.0, -0.5, 0.75,   1.0, 0.0, 0.0, 0.0,
-
-        0.25, -0.5, 0.0,   0.0, 1.0, 1.0, 0.0, //Plavi trougao - Zadnji
-       -0.25, -0.5, 0.0,   0.0, 1.0, 1.0, 0.0,
-        0.0,   0.5, 0.0,   0.0, 1.0, 1.0, 0.0
-    };
-    unsigned int stride = (3 + 4) * sizeof(float);
-
-    glBindVertexArray(VAO[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(3);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
 
     // sea
     float seaVerticex[]  = {
     -5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f,
      5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f,
      5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
+
      5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
     -5.5f,  0.0f,  5.5f,  0.0f,  0.0f,  1.0f,
     -5.5f,  0.0f, -5.5f,  0.0f,  0.0f,  1.0f
@@ -145,20 +137,38 @@ int main(void)
 
 
     // islands
+    float islands[((2 + CRES) * 3) * 2];
+    generateCircle(islands, 1.0f, 0.2f, 1.0f, 3.0f, aspectRatio, 0);
+    generateCircle(islands, -2.7f, 0.1f, -3.0f, 1.0f, aspectRatio, (2 + CRES) * 3);
 
+    glBindVertexArray(VAO[4]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(islands), islands, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 
     // palmtree
+    Model palmtree("res/palm/uploads_files_4607039_free_palm.obj");
 
 
     // fire
+    float fire[((2 + CRES) * 3) * 2];
+    generateFire(islands, 1.3f, 0.6f, 1.3f, 0.2f, aspectRatio, 0);
+    generateFire(islands, 1.3f, -0.08f, 1.3f, 0.2f, aspectRatio, (2 + CRES) * 3);
 
+    glBindVertexArray(VAO[6]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[6]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(islands), islands, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 
     // clouds
 
    
     // fishes
-    Model fish("res/uploads_files_3373269_shark.obj");
-    Model fish2("res/uploads_files_3373269_shark.obj");
+    Model fish("res/shark/uploads_files_3373269_shark.obj");
+    Model fish2("res/shark/uploads_files_3373269_shark.obj");
+    Model fish3("res/shark/uploads_files_3373269_shark.obj");
     float currentTime = 0.0f;
 
 
@@ -202,6 +212,8 @@ int main(void)
 
         glEnable(GL_DEPTH_TEST);
         glCullFace(GL_BACK);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Osvjezavamo i Z bafer i bafer boje
 
@@ -209,8 +221,6 @@ int main(void)
        
         bool firstClick = true;
         float sensitivity = 100.0f;
-
-
 
         // handle keyboard input: A S D W, UP DOWN LEFT RIGHT,  O P,  + - R,  1 2 3, esc
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
@@ -226,7 +236,6 @@ int main(void)
             }
 
         }
-
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
@@ -242,8 +251,6 @@ int main(void)
             }
 
         }
-
-
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 
 
@@ -260,8 +267,6 @@ int main(void)
 
             }
         }
-
-
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
@@ -276,7 +281,6 @@ int main(void)
 
             }
         }
-
         if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
 
 
@@ -295,8 +299,6 @@ int main(void)
 
             }
         }
-
-
         if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
@@ -311,7 +313,6 @@ int main(void)
 
             }
         }
-
         if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
@@ -325,8 +326,6 @@ int main(void)
 
             }
         }
-
-
         if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
@@ -340,9 +339,6 @@ int main(void)
 
             }
         }
-
-
-
         if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
@@ -356,8 +352,6 @@ int main(void)
 
             }
         }
-
-
         if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
@@ -371,9 +365,6 @@ int main(void)
 
             }
         }
-
-
-
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         {
             glfwSetWindowShouldClose(window, GL_TRUE);
@@ -397,9 +388,9 @@ int main(void)
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
 
-            if (!speedKeyPressed && elapsedTime > 0.01) {
-                if (speed <= 2.0) {
-                    speed += 0.2;
+            if (!speedKeyPressed && elapsedTime > 0.2) {
+                if (speed <= 0.01) {
+                    speed += 0.001;
                     speedKeyPressed = true;  // Set the flag to true to indicate key press
                     lastKeyPressTime = currentTime;  // Update the last key press time
                 }
@@ -411,9 +402,9 @@ int main(void)
             clock_t currentTime = clock();
             double elapsedTime = static_cast<double>(currentTime - lastKeyPressTime) / CLOCKS_PER_SEC;
 
-            if (!speedKeyPressed && elapsedTime > 0.01) {
-                if (speed >= 0.2) {
-                    speed -= 0.2;
+            if (!speedKeyPressed && elapsedTime > 0.2) {
+                if (speed >= 0.0001) {
+                    speed -= 0.0001;
                     speedKeyPressed = true;  // Set the flag to true to indicate key press
                     lastKeyPressTime = currentTime;  // Update the last key press time
                 }
@@ -421,9 +412,8 @@ int main(void)
         }
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
         {
-            speed = 1.0;
+            speed = 0.001;
         }
-
         if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
         {
             std::cout << camPosition.x << " cam pos x " << camOrientation.x << " cam ori x" << std::endl;
@@ -461,7 +451,6 @@ int main(void)
 
 
 
-
         ////sky 
         //glBindVertexArray(VAO[0]);
         //glUniform1i(modeLoc, 0);
@@ -475,12 +464,16 @@ int main(void)
         unifiedShader.setInt("mode", 2);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        //island1 
+        //islands 
+        glBindVertexArray(VAO[4]);
+        unifiedShader.setInt("mode", 4);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
+        glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
 
 
         //fishes
 
-        //big fish
+            //big fish
         unifiedShader.setInt("mode", 8);
         currentTime += 1;
         float angle = currentTime * speed;
@@ -495,43 +488,75 @@ int main(void)
             glm::vec4(cos(angle), 0.0f, sin(angle), 0.0f),
             glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
             glm::vec4(-sin(angle), 0.0f, cos(angle), 0.0f),
-            glm::vec4(-sin(angle) * 2.5, 0.0f, cos(angle) * 2.5, 1.0f)
+            glm::vec4(-sin(angle) * 3.5, 0.0f, cos(angle) * 3.5, 1.0f)
         );
         unifiedShader.setMat4("rotationMatrix", rotationMatrix);
         unifiedShader.setFloat("scale", 0.4);
 
         fish.Draw(unifiedShader);
 
-        //small fish
-        glm::mat4 translationMatrix2 = glm::mat4(
+            //small fish
+        translationMatrix = glm::mat4(
             glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
             glm::vec4(-2.7f, -0.15f, -3.0f, 1.0f)
         );
-        unifiedShader.setMat4("translationMatrix", translationMatrix2);
-        glm::mat4 rotationMatrix2 = glm::mat4(
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        rotationMatrix = glm::mat4(
             glm::vec4(-cos(angle), 0.0f, -sin(angle), 0.0f),
             glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
             glm::vec4(sin(angle), 0.0f, -cos(angle), 0.0f),
-            glm::vec4(sin(angle) * 1.2, 0.0f, -cos(angle) * 1.2, 1.0f)
+            glm::vec4(sin(angle) * 1.2, 0.0f, -cos(angle) * 1.5, 1.0f)
         );
-        unifiedShader.setMat4("rotationMatrix", rotationMatrix2);
+        unifiedShader.setMat4("rotationMatrix", rotationMatrix);
         unifiedShader.setFloat("scale", 0.2);
 
         fish2.Draw(unifiedShader);
 
+        translationMatrix = glm::mat4(
+            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+            glm::vec4(1.0f, -0.1f, 1.0f, 1.0f)
+        );
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        rotationMatrix = glm::mat4(
+            glm::vec4(cos(angle), 0.0f, sin(angle), 0.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(-sin(angle), 0.0f, cos(angle), 0.0f),
+            glm::vec4(-sin(angle) * 2.8, 0.0f, cos(angle) * 2.5, 1.0f)
+        );
+        unifiedShader.setMat4("rotationMatrix", rotationMatrix);
+        unifiedShader.setFloat("scale", 0.2);
 
+        fish3.Draw(unifiedShader);
 
-
-        //island2
 
 
         //pamltree
+        unifiedShader.setInt("mode", 5);
+        translationMatrix = glm::mat4(
+            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+            glm::vec4(1.0f, -0.1f, 1.0f, 1.0f)
+        );
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        unifiedShader.setFloat("scale", 0.25);
+        unifiedShader.setBool("model", true);
+
+        palmtree.Draw(unifiedShader);
+        unifiedShader.setBool("model", false);
 
 
         // fire
+        glBindVertexArray(VAO[6]);
+        unifiedShader.setInt("mode", 6);
+        unifiedShader.setFloat("firePos", 1.2 + 0.3 * sin(glfwGetTime() * speed * 500));
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
 
+        glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
 
         // index texture
         unifiedShader.setInt("mode", 3);
