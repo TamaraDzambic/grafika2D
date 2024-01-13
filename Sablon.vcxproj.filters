@@ -30,6 +30,7 @@
     <None Include="basic.vert">
       <Filter>Source Files\Shader Files</Filter>
     </None>
+    <None Include="..\..\..\..\Downloads\uploads_files_4275112_033_3dmax.max" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stb_image.h">

@@ -142,7 +142,7 @@ int main(void)
     Model island("res/island/Base.obj");
 
     // palmtree
-    Model palmtree("res/palm/palm.obj");
+    Model palmtree("res/palm/MY_PALM.obj");
     // clouds
     Model cloud("res/cloud/Cloud_Hipoly.obj");
     // fishes
@@ -438,7 +438,6 @@ int main(void)
 
 
         //fishes
-        unifiedShader.setBool("model", true);
         unifiedShader.setInt("mode", 8);
         currentTime += 1;
         float angle = currentTime * speed;
@@ -479,6 +478,7 @@ int main(void)
         }
 
        
+        unifiedShader.setBool("model", true);
 
 
         //pamltree
@@ -487,10 +487,10 @@ int main(void)
             glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-            glm::vec4(1.0f, -0.1f, 1.0f, 1.0f)
+            glm::vec4(0.8f, 0.0f, 0.8f, 1.0f)
         );
         unifiedShader.setMat4("translationMatrix", translationMatrix);
-        unifiedShader.setFloat("scale", 0.25);
+        unifiedShader.setFloat("scale", 0.005);
 
         palmtree.Draw(unifiedShader);
 
@@ -543,11 +543,11 @@ int main(void)
        unifiedShader.setInt("mode", 7);
           
        glm::vec4 cloudVec[] = { 
-           glm::vec4(-8.0f, 3.5f, -7.0f, 1.0f),
-           glm::vec4(-4.0f, 3.5f, 6.0f, 1.0f),
-           glm::vec4(-0.5f, 3.0f, 0.5f, 1.0f),
-           glm::vec4(4.0f, 3.5f, -4.0f, 1.0f),
-           glm::vec4(2.0f, 3.0f, 9.0f, 1.0f)
+           glm::vec4(-8.0f, 6.5f, -7.0f, 1.0f),
+           glm::vec4(-4.0f, 6.5f, 6.0f, 1.0f),
+           glm::vec4(-0.5f, 6.0f, 0.5f, 1.0f),
+           glm::vec4(4.0f, 6.5f, -4.0f, 1.0f),
+           glm::vec4(2.0f, 6.0f, 9.0f, 1.0f)
        };
        for (int i = 0; i < sizeof(cloudVec); ++i) {
            float xTranslation = currentTime * speed;  // Adjust the speed and offset as needed

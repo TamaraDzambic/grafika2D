@@ -144,6 +144,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\Downloads\uploads_files_4275112_033_3dmax.max" />
     <None Include="basic.frag" />
     <None Include="basic.vert" />
     <None Include="packages.config" />
