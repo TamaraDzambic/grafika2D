@@ -71,7 +71,7 @@ void main()
             break;
         
         case 4:
-          chUV = inUV;
+           chUV = inUV;
 
             // Scale the model to three sizes smaller
             scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
