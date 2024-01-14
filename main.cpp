@@ -23,41 +23,13 @@
 #define CRES 30 
 
 
-
-unsigned int compileShader(GLenum type, const char* source);
-unsigned int createShader(const char* vsSource, const char* fsSource); 
-
 static unsigned loadImageToTexture(const char* filePath); 
 void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture);
-
-void generateCircle(float circle[], float centerX, float centerY, float centerZ, float radius, float aspectRatio, int beg) {
-    circle[beg] = centerX; // Center X
-    circle[beg + 1] = centerY; // Center Y
-    circle[beg + 2] = centerZ; // Center Z
-    for (int i = 0; i <= CRES; i++) {
-        float angle = (M_PI / 180) * (i * 360.0 / CRES);
-        circle[beg + 3 + 3 * i] = centerX + radius * cos(angle); // Xi
-        circle[beg + 3 + 3 * i + 1] =  -0.5; // Yi
-        circle[beg + 3 + 3 * i + 2] = centerZ + radius * sin(angle); // Yi
-    }
-}
-
-void generateFire(float circle[], float centerX, float centerY, float centerZ, float radius, float aspectRatio, int beg) {
-    circle[beg] = centerX; // Center X
-    circle[beg + 1] = centerY; // Center Y
-    circle[beg + 2] = centerZ; // Center Z
-    for (int i = 0; i <= CRES; i++) {
-        float angle = (M_PI / 180) * (i * 360.0 / CRES);
-        circle[beg + 3 + 3 * i] = centerX + radius * cos(angle); // Xi
-        circle[beg + 3 + 3 * i + 1] = 0.2; // Yi
-        circle[beg + 3 + 3 * i + 2] = centerZ + radius * sin(angle); // Yi
-    }
-}
-
+void generateFire(float circle[], float centerX, float centerY, float centerZ, float radius, float aspectRatio, int beg);
 
 int main(void)
 {
-    //initialization
+    // initialization
     if (!glfwInit()){
         std::cout << "GLFW Biblioteka se nije ucitala! :(\n";
         return 1;
@@ -73,7 +45,6 @@ int main(void)
     const unsigned int height = mode->height;
 
     GLFWwindow* window = glfwCreateWindow(width,height, "SV43/2020", primaryMonitor, NULL);
-
     float aspectRatio = static_cast<float>(width) / height;
 
     if (window == NULL){
@@ -82,33 +53,19 @@ int main(void)
         return 2;
     }
     glfwMakeContextCurrent(window);
-
     if (glewInit() != GLEW_OK){
         std::cout << "GLEW nije mogao da se ucita! :'(\n";
         return 3;
     }
 
-
-
-    //shader and buffers
+    // shader and buffers
     Shader unifiedShader("basic.vert", "basic.frag");
     unifiedShader.use();
 
-
-
-    unsigned int VAO[9];
-    glGenVertexArrays(9, VAO);
-    unsigned int VBO[9];
-    glGenBuffers(9, VBO);
-
-    //sky
-
-
-
-    //sun and moon
-
-
-
+    unsigned int VAO[2];
+    glGenVertexArrays(2, VAO);
+    unsigned int VBO[2];
+    glGenBuffers(2, VBO);
 
     // index texture
     float indexVertices[] = {
@@ -118,29 +75,23 @@ int main(void)
         0.7f, -0.85f,  0.0f, 1.0f
     };
     unsigned indexTexture = loadImageToTexture("index.png");
-    initializeTexture(VAO[3], VBO[3], indexVertices, sizeof(indexVertices), indexTexture);
-
-
-
+    initializeTexture(VAO[0], VBO[0], indexVertices, sizeof(indexVertices), indexTexture);
 
     // fire
     float fire[((2 + CRES) * 3) * 2] = {};
     generateFire(fire, 1.3f, 0.6f, 1.3f, 0.2f, aspectRatio, 0);
     generateFire(fire, 1.3f, -0.01f, 1.3f, 0.2f, aspectRatio, (2 + CRES) * 3);
 
-    glBindVertexArray(VAO[6]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[6]);
+    glBindVertexArray(VAO[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(fire), fire, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-
     // sea
     Model sea("res/sea/Ocean.obj");
-
     // island
     Model island("res/island/Base.obj");
-
     // palmtree
     Model palmtree("res/palm/MY_PALM.obj");
     // clouds
@@ -148,19 +99,15 @@ int main(void)
     // fishes
     Model fish("res/shark/shark.obj");
 
-
-
-
     // ++++++++++++++++++++++++++++++++++++++++++++++++++++++            UNIFORME            +++++++++++++++++++++++++++++++++++++++++++++++++
 
     glm::mat4 model = glm::mat4(1.0f); //Matrica transformacija - mat4(1.0f) generise jedinicnu matricu
     unifiedShader.setMat4("uM", model);
+    
     glm::mat4 view; //Matrica pogleda (kamere)
-
-    glm::vec3 camPosition = glm::vec3(-2.0f, 1.4f, 0.8f);
-    glm::vec3 camOrientation = glm::vec3(-13.7f, -76.6f, -89.8f);
+    glm::vec3 camPosition = glm::vec3(2.69997f, 52.8998f, 68.5003f);
+    glm::vec3 camOrientation = glm::vec3(-0.400004f, -17.1f, -22.1f);
     glm::vec3 camRotation = glm::vec3(0.0f, 1.0f, 0.0f);
-
     view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
     unifiedShader.setMat4("uV", view);
 
@@ -169,35 +116,32 @@ int main(void)
     unifiedShader.setMat4("uP", projectionO);
 
 
-    clock_t lastKeyPressTime = clock();
-
     unifiedShader.setVec3("uLightPos", 0, 1, 3);
     unifiedShader.setVec3("uViewPos", 0, 0, 5);
     unifiedShader.setVec3("uLightColor", 1, 1, 1);
-    
+
+    clock_t lastKeyPressTime = clock();
     float currentTime = 0.0f;
     float speed = 0.001;
     float r = 1.0;
-    unifiedShader.setBool("useTexture", false);
-    unifiedShader.setInt("mode", 0);
+    float sunPosition = 1.0f;
+    glm::mat4 translationMatrix;
 
     while (!glfwWindowShouldClose(window))
     {
 
         glEnable(GL_DEPTH_TEST);
-        //glEnable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE); 
         glCullFace(GL_BACK);
-
-
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Osvjezavamo i Z bafer i bafer boje
 
         bool speedKeyPressed = false;
-       
         bool firstClick = true;
         float sensitivity = 100.0f;
+        float angle = currentTime * speed;
+        currentTime += 1;
 
         // handle keyboard input: A S D W, UP DOWN LEFT RIGHT,  O P,  + - R,  1 2 3, esc
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
@@ -391,15 +335,6 @@ int main(void)
         {
             speed = 0.001;
         }
-        if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
-        {
-            std::cout << camPosition.x << " cam pos x " << camOrientation.x << " cam ori x" << std::endl;
-            std::cout << camPosition.y << " cam pos y " << camOrientation.y << " cam ori y" << std::endl;
-            std::cout << camPosition.z << " cam pos z " << camOrientation.z << " cam ori z" << std::endl;
-
-        }
-
-        //Mijenjanje projekcija
         if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
         {
             camPosition = glm::vec3(2.8f, 5.6f, 8.6f);
@@ -407,9 +342,7 @@ int main(void)
             camRotation = glm::vec3(0.0f, 1.0f, 0.0f);
 
             view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-
             unifiedShader.setMat4("uV", view);
-
             unifiedShader.setMat4("uP", projectionP);
         }
         if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
@@ -419,34 +352,63 @@ int main(void)
             camRotation = glm::vec3(0.0f, 1.0f, 0.0f);
 
             view = glm::lookAt(camPosition, camOrientation, camRotation); // lookAt(Gdje je kamera, u sta kamera gleda, jedinicni vektor pozitivne Y ose svijeta  - ovo rotira kameru)
-
             unifiedShader.setMat4("uV", view);
             unifiedShader.setMat4("uP", projectionO);
 
         }
 
 
+        //sky and light
+        float t = (sin(glfwGetTime() / 2) + 1.0f) / 2.0f;
 
-        //sky 
+        float dirLightPosX = sin(currentTime * sunPosition);
+        float dirLightPosY = cos(currentTime * sunPosition);
+        float dirLightPosZ = 0.0f;
 
+        glClearColor(0.7, 0.7, 1.0, 1.0);
 
-        //sun, moon
+         //pamltree
+        unifiedShader.setBool("model", true);
 
+        unifiedShader.setInt("mode", 1);
+        translationMatrix = glm::translate(model, glm::vec3(0.8f, 0.0f, 0.8f));
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        unifiedShader.setFloat("scale", 0.005);
+        palmtree.Draw(unifiedShader);
 
-
+        // sea
         float seaPos = 0.01 * sin(glfwGetTime() * speed * 500);
+        unifiedShader.setFloat("seaPos", seaPos);
+        translationMatrix = glm::translate(model, glm::vec3(-5.0f, 0.3f, -2.5f));
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        unifiedShader.setFloat("scale", 10.0);
+        sea.Draw(unifiedShader);
+
+        // islands 
+        unifiedShader.setInt("mode", 2);
+        translationMatrix = glm::translate(model, glm::vec3(1.0f, -0.19f, 1.0f));
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        unifiedShader.setFloat("scale", 0.2);
+        island.Draw(unifiedShader);
+
+        translationMatrix = glm::translate(model, glm::vec3(-7.7f, -0.19f, -7.0f));
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        unifiedShader.setFloat("scale", 0.08);
+        island.Draw(unifiedShader);
+
+        unifiedShader.setBool("model", false);
 
 
-        //fishes
-        unifiedShader.setInt("mode", 8);
-        currentTime += 1;
-        float angle = currentTime * speed;
-            //big fish
 
-        glm::vec4 translation[] = {
-            glm::vec4(1.0f, -0.7f , 1.0f, 1.0f),
-            glm::vec4(-7.7f, -0.415f, -7.0f, 1.0f),
-            glm::vec4(1.0f, -0.4f, 1.0f, 1.0f),
+
+       // fishes
+       unifiedShader.setInt("mode", 3);
+
+
+        glm::vec3 translation[] = {
+            glm::vec3(1.0f, -0.7f , 1.0f),
+            glm::vec3(-7.7f, -0.415f, -7.0f),
+            glm::vec3(1.0f, -0.4f, 1.0f),
         };
         glm::vec4 rotation[] = {
             glm::vec4(-sin(angle) * 5.0, 0.0f, cos(angle) * 5.0, 1.0f),
@@ -456,12 +418,7 @@ int main(void)
         float scale[] = { 1.0, 0.5, 0.8 };
 
         for (int i = 0; i < 3; i++) {
-            glm::mat4 translationMatrix = glm::mat4(
-                glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-                glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-                glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-                translation[i]
-             );
+            translationMatrix = glm::translate(model, translation[i]);
             unifiedShader.setMat4("translationMatrix", translationMatrix);
             
             glm::mat4 rotationMatrix = glm::mat4(
@@ -477,132 +434,50 @@ int main(void)
             fish.Draw(unifiedShader);
         }
 
-       
-        unifiedShader.setBool("model", true);
-
-
-        //pamltree
-        unifiedShader.setInt("mode", 5);
-        glm::mat4 translationMatrix = glm::mat4(
-            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-            glm::vec4(0.8f, 0.0f, 0.8f, 1.0f)
-        );
-        unifiedShader.setMat4("translationMatrix", translationMatrix);
-        unifiedShader.setFloat("scale", 0.005);
-
-        palmtree.Draw(unifiedShader);
-
-        // sea
-
-        unifiedShader.setInt("mode", 2);
-        unifiedShader.setFloat("seaPos", seaPos);
-        translationMatrix = glm::mat4(
-            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-            glm::vec4(-5.0f, 0.3f, -2.5f, 1.0f)
-        );
-        unifiedShader.setMat4("translationMatrix", translationMatrix);
-        unifiedShader.setFloat("scale", 10.0);
-
-        sea.Draw(unifiedShader);
-
-        //islands 
-
-        unifiedShader.setInt("mode", 4);
-        translationMatrix = glm::mat4(
-            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-            glm::vec4(1.0f, -0.19f, 1.0f, 1.0f)
-        );
-        unifiedShader.setMat4("translationMatrix", translationMatrix);
-        unifiedShader.setFloat("scale", 0.2);
-
-        island.Draw(unifiedShader);
-
-
-        unifiedShader.setInt("mode", 4);
-        translationMatrix = glm::mat4(
-            glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-            glm::vec4(-7.7f, -0.19f, -7.0f, 1.0f)
-        );
-        unifiedShader.setMat4("translationMatrix", translationMatrix);
-        unifiedShader.setFloat("scale", 0.08);
-
-        island.Draw(unifiedShader);
 
 
         // clouds
-        unifiedShader.setBool("model", false);
+        unifiedShader.setInt("mode", 4);
 
-       unifiedShader.setInt("mode", 7);
-          
-       glm::vec4 cloudVec[] = { 
-           glm::vec4(-8.0f, 6.5f, -7.0f, 1.0f),
-           glm::vec4(-4.0f, 6.5f, 6.0f, 1.0f),
-           glm::vec4(-0.5f, 6.0f, 0.5f, 1.0f),
-           glm::vec4(4.0f, 6.5f, -4.0f, 1.0f),
-           glm::vec4(2.0f, 6.0f, 9.0f, 1.0f)
-       };
-       for (int i = 0; i < sizeof(cloudVec); ++i) {
-           float xTranslation = currentTime * speed;  // Adjust the speed and offset as needed
+        glm::vec4 cloudVec[] = {
+            glm::vec4(-8.0f, 6.5f, -7.0f, 1.0f),
+            glm::vec4(-4.0f, 6.5f, 6.0f, 1.0f),
+            glm::vec4(-0.5f, 6.0f, 0.5f, 1.0f),
+            glm::vec4(4.0f, 6.5f, -4.0f, 1.0f),
+            glm::vec4(2.0f, 6.0f, 9.0f, 1.0f)
+        };
+        for (int i = 0; i < sizeof(cloudVec); ++i) {
+            float xTranslation = currentTime * speed;
+            xTranslation = fmod(xTranslation, 5.0f);
+            float newx = cloudVec[i][0] - 3.0f + xTranslation;
 
-           // Apply wrap-around logic
-           xTranslation = fmod(xTranslation, 5.0f);  // Wrap around when x > 10
-
-           // Modify the x-component of the cloud vector
-           float newx = cloudVec[i][0] -3.0f + xTranslation;
-
-           translationMatrix = glm::mat4(
-               glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-               glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-               glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-               glm::vec4(newx, cloudVec[i][1], cloudVec[i][2], cloudVec[i][3])
-           );
-           unifiedShader.setMat4("translationMatrix", translationMatrix);
-           unifiedShader.setFloat("scale", 0.4);
-           cloud.Draw(unifiedShader);
-       }
-
-
-
-
+            translationMatrix = glm::translate(model, glm::vec3(newx, cloudVec[i][1], cloudVec[i][2]));
+            unifiedShader.setMat4("translationMatrix", translationMatrix);
+            unifiedShader.setFloat("scale", 0.4);
+            cloud.Draw(unifiedShader);
+        }
 
         // fire
-        glBindVertexArray(VAO[6]);
-        unifiedShader.setInt("mode", 6);
+        glBindVertexArray(VAO[1]);
+        glDisable(GL_CULL_FACE); 
+        unifiedShader.setInt("mode", 5);
         unifiedShader.setBool("fire", true);
-
         unifiedShader.setFloat("firePos", 1.2 + 0.3 * sin(glfwGetTime() * speed * 500));
         glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
-
         glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
         unifiedShader.setBool("fire", false);
+        glEnable(GL_CULL_FACE);  
 
 
-
-
-
-
-        // index texture
-        unifiedShader.setInt("mode", 3);
-
-        glBindVertexArray(VAO[3]);
+        // index 
+        glBindVertexArray(VAO[0]);
+        unifiedShader.setInt("mode", 0);
         unifiedShader.setBool("useTexture", true);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         unifiedShader.setBool("useTexture", false);
-
-        
-
-
 
         //swap
         glfwSwapBuffers(window);
@@ -616,81 +491,6 @@ int main(void)
     glDeleteProgram(unifiedShader.ID);
     glfwTerminate();
     return 0;
-}
-
-unsigned int compileShader(GLenum type, const char* source)
-{
-    std::string content = "";
-    std::ifstream file(source);
-    std::stringstream ss;
-    if (file.is_open())
-    {
-        ss << file.rdbuf();
-        file.close();
-        std::cout << "Uspjesno procitao fajl sa putanje \"" << source << "\"!" << std::endl;
-    }
-    else {
-        ss << "";
-        std::cout << "Greska pri citanju fajla sa putanje \"" << source << "\"!" << std::endl;
-    }
-    std::string temp = ss.str();
-    const char* sourceCode = temp.c_str();
-
-    int shader = glCreateShader(type);
-
-    int success;
-    char infoLog[512];
-    glShaderSource(shader, 1, &sourceCode, NULL);
-    glCompileShader(shader);
-
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (success == GL_FALSE)
-    {
-        glGetShaderInfoLog(shader, 512, NULL, infoLog);
-        if (type == GL_VERTEX_SHADER)
-            printf("VERTEX");
-        else if (type == GL_FRAGMENT_SHADER)
-            printf("FRAGMENT");
-        printf(" sejder ima gresku! Greska: \n");
-        printf(infoLog);
-    }
-    return shader;
-}
-
-unsigned int createShader(const char* vsSource, const char* fsSource){
-
-    unsigned int program;
-    unsigned int vertexShader;
-    unsigned int fragmentShader;
-
-    program = glCreateProgram();
-
-    vertexShader = compileShader(GL_VERTEX_SHADER, vsSource);
-    fragmentShader = compileShader(GL_FRAGMENT_SHADER, fsSource);
-
-
-    glAttachShader(program, vertexShader);
-    glAttachShader(program, fragmentShader);
-
-    glLinkProgram(program);
-    glValidateProgram(program);
-
-    int success;
-    char infoLog[512];
-    glGetProgramiv(program, GL_VALIDATE_STATUS, &success);
-    if (success == GL_FALSE)
-    {
-        glGetShaderInfoLog(program, 512, NULL, infoLog);
-        std::cout << "Objedinjeni sejder ima gresku! Greska: \n";
-        std::cout << infoLog << std::endl;
-    }
-
-    glDetachShader(program, vertexShader);
-    glDeleteShader(vertexShader);
-    glDetachShader(program, fragmentShader);
-    glDeleteShader(fragmentShader);
-
-    return program;
 }
 
 static unsigned loadImageToTexture(const char* filePath) {
@@ -746,4 +546,16 @@ void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void generateFire(float circle[], float centerX, float centerY, float centerZ, float radius, float aspectRatio, int beg) {
+    circle[beg] = centerX; // Center X
+    circle[beg + 1] = centerY; // Center Y
+    circle[beg + 2] = centerZ; // Center Z
+    for (int i = 0; i <= CRES; i++) {
+        float angle = (M_PI / 180) * (i * 360.0 / CRES);
+        circle[beg + 3 + 3 * i] = centerX + radius * cos(angle); // Xi
+        circle[beg + 3 + 3 * i + 1] = 0.2; // Yi
+        circle[beg + 3 + 3 * i + 2] = centerZ + radius * sin(angle); // Yi
+    }
 }
