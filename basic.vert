@@ -8,11 +8,9 @@ layout(location = 3) in vec4 inCol; //Boja tjemena - ovo saljemo u fragment sejd
 layout(location = 4) in vec2 inTex;   // Texture coordinates
 
 out vec4 channelCol; //Izlazni kanal kroz koji saljemo boju do fragment sejdera
-out vec2 texCoord;
-
+out vec2 TexCoords;
 out vec3 chFragPos;
 out vec3 chNormal;
-out vec2 chUV;
 
 
 uniform mat4 uM; //Matrica transformacije
@@ -33,11 +31,11 @@ void main()
     switch (mode) {
         case 0:
             gl_Position = vec4(inPos, 1.0);
-            texCoord = inTex;
+            TexCoords = inTex;
             break;
         
         case 1:
-            chUV = inUV;
+            TexCoords = inUV;
             mat4 scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
                                         vec4(0.0, scale, 0.0, 0.0),
                                         vec4(0.0, 0.0, scale, 0.0),
@@ -50,7 +48,7 @@ void main()
             break; 
         
         case 2:
-           chUV = inUV;
+           TexCoords = inUV;
             scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
                                         vec4(0.0, scale, 0.0, 0.0),
                                         vec4(0.0, 0.0, scale, 0.0),
@@ -66,7 +64,7 @@ void main()
             break;
         
         case 3:
-            chUV = inUV;
+            TexCoords = inUV;
             scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
                                         vec4(0.0, scale, 0.0, 0.0),
                                         vec4(0.0, 0.0, scale, 0.0),
@@ -79,7 +77,7 @@ void main()
             break;      
                
         case 4:
-            chUV = inUV;
+            TexCoords = inUV;
             scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
                                         vec4(0.0, scale, 0.0, 0.0),
                                         vec4(0.0, 0.0, scale, 0.0),
@@ -93,7 +91,7 @@ void main()
 
         case 5:
 
-            chUV = inUV;
+            TexCoords = inUV;
             scaledModel = uM * mat4(vec4(scale, 0.0, 0.0, 0.0),
                                         vec4(0.0, scale, 0.0, 0.0),
                                         vec4(0.0, 0.0, scale, 0.0),
@@ -117,7 +115,7 @@ void main()
             break;
         
         default:
-            chUV = inUV;
+            TexCoords = inUV;
             chFragPos = vec3(uM * vec4(inPos, 1.0));
             chNormal = mat3(transpose(inverse(uM))) * inNormal;  
             gl_Position = uP * uV * vec4(inPos, 1.0);

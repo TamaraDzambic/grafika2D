@@ -23,6 +23,45 @@
 #define CRES 30 
 
 
+#pragma region Directional light properties
+glm::vec3 lerpedDirLightColor;
+glm::vec3 softYellow = glm::vec3(1.0, 1.0, 0.6);
+glm::vec3 softGrey = glm::vec3(0.7529, 0.7529, 0.7529);
+
+glm::vec3 lerpedBackroundColor;
+glm::vec3 lightBlue = glm::vec3(0.7, 0.7, 1.0);
+glm::vec3 darkBlue = glm::vec3(0.1176, 0.1569, 0.2745);
+
+glm::vec3 dirLightIntensityStart = glm::vec3(1.0);
+glm::vec3 dirLightIntensityEnd = glm::vec3(0.5);
+glm::vec3 lerpedDirLightIntensity;
+#pragma endregion
+
+#pragma region Point light properties
+glm::vec3 firePos = glm::vec3(1.3,0.0,1.3);
+
+glm::vec3 softRed = glm::vec3(1.0, 0.4, 0.4);
+glm::vec3 softOrange = glm::vec3(1.0, 0.6, 0.2);
+glm::vec3 fireColor = softRed;
+
+glm::vec3 fireIntensityStart = glm::vec3(0.9, 0.9, 0.9);
+glm::vec3 fireIntensityEnd = glm::vec3(0.5, 0.5, 0.5);
+glm::vec3 fireIntensity = fireIntensityStart;
+
+glm::vec3 fireScaleStart = glm::vec3(1.0, 1.0, 1.0);
+glm::vec3 fireScaleEnd = glm::vec3(0.8, 0.8, 0.8);
+glm::vec3 fireScale = fireScaleStart;
+glm::mat4 oreginalFireModel;
+#pragma endregion
+
+#pragma region Spotlight properties
+glm::vec3 spotlightPos = glm::vec3(1.0, 1.0, 1.0);
+glm::vec3 spotlightDir = glm::vec3(0.0, 0.0, 0.0);
+glm::vec3 purple = glm::vec3(0.7, 0.0, 1.0);
+#pragma endregion
+
+
+
 static unsigned loadImageToTexture(const char* filePath); 
 void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture);
 
@@ -107,8 +146,60 @@ int main(void)
 
 
     unifiedShader.setVec3("uLightPos", 0, 1, 3);
-    unifiedShader.setVec3("uViewPos", 0, 0, 5);
     unifiedShader.setVec3("uLightColor", 1, 1, 1);
+
+
+    // material properties
+    unifiedShader.setInt("material.diffuse", 0);
+    unifiedShader.setInt("material.specular", 1);
+    unifiedShader.setFloat("material.shininess", 32.0f);
+
+    // camera position
+    unifiedShader.setVec3("uViewPos", camPosition);
+
+
+
+    // directional light properties
+    unifiedShader.setVec3("dirLight.direction", 0.0f, 0.0f, 0.0f);
+    unifiedShader.setVec3("dirLight.color", softYellow);
+    unifiedShader.setVec3("dirLight.intensity", dirLightIntensityStart);
+
+    unifiedShader.setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);
+    unifiedShader.setVec3("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
+    unifiedShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
+
+    // point light properties
+    unifiedShader.setVec3("pointLight.position", firePos);
+    unifiedShader.setVec3("pointLight.color", fireColor);
+    unifiedShader.setVec3("pointLight.intensity", fireIntensity);
+
+    unifiedShader.setVec3("pointLight.ambient", 0.07f, 0.07f, 0.07f);
+    unifiedShader.setVec3("pointLight.diffuse", 2.8f, 2.8f, 2.8f);
+    unifiedShader.setVec3("pointLight.specular", 4.0f, 4.0f, 4.0f);
+
+    unifiedShader.setFloat("pointLight.constant", 1.0f);
+    unifiedShader.setFloat("pointLight.linear", 0.09f);
+    unifiedShader.setFloat("pointLight.quadratic", 0.032f);
+
+    // spotlight properties
+    unifiedShader.setVec3("spotLight.position", spotlightPos);
+    unifiedShader.setVec3("spotLight.direction", spotlightDir);
+    unifiedShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(20.0f)));
+    unifiedShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(25.0f)));
+    unifiedShader.setVec3("spotLight.color", purple);
+
+    unifiedShader.setFloat("spotLight.constant", 1.0f);
+    unifiedShader.setFloat("spotLight.linear", 0.09f);
+    unifiedShader.setFloat("spotLight.quadratic", 0.032f);
+
+    unifiedShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+    unifiedShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+    unifiedShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+
+
+
+
+
 
     clock_t lastKeyPressTime = clock();
     float currentTime = 0.0f;
@@ -126,6 +217,7 @@ int main(void)
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Osvjezavamo i Z bafer i bafer boje
+        glClearColor(0.7, 0.7, 1.0, 1.0);
 
         bool speedKeyPressed = false;
         bool firstClick = true;
@@ -349,16 +441,26 @@ int main(void)
 
 
         //sky and light
-        float t = (sin(glfwGetTime() / 2) + 1.0f) / 2.0f;
+       
 
-        float dirLightPosX = sin(currentTime * sunPosition);
-        float dirLightPosY = cos(currentTime * sunPosition);
+        double time = glfwGetTime();
+        float t = (cos(time * sunPosition) + 1.0f) / 2.0f;
+
+        float dirLightPosX = sin(time * sunPosition);
+        float dirLightPosY = cos(time * sunPosition);
         float dirLightPosZ = 0.0f;
 
-        glClearColor(0.7, 0.7, 1.0, 1.0);
+        lerpedDirLightColor = mix(softYellow, softGrey, t);
+        lerpedBackroundColor = mix(lightBlue, darkBlue, t);
+        lerpedDirLightIntensity = mix(dirLightIntensityStart, dirLightIntensityEnd, t);
+
+        unifiedShader.setVec3("dirLight.direction", dirLightPosX, dirLightPosY, dirLightPosZ);
+        unifiedShader.setVec3("dirLight.color", lerpedDirLightColor);
+        unifiedShader.setVec3("dirLight.intensity", lerpedDirLightIntensity);
+        glClearColor(lerpedBackroundColor.x, lerpedBackroundColor.y, lerpedBackroundColor.z, 1.0);
+
 
          //pamltree
-        unifiedShader.setBool("model", true);
 
         unifiedShader.setInt("mode", 1);
         translationMatrix = glm::translate(model, glm::vec3(0.8f, 0.0f, 0.8f));
@@ -367,7 +469,7 @@ int main(void)
         palmtree.Draw(unifiedShader);
 
         // sea
-        float seaPos = 0.01 * sin(glfwGetTime() * speed * 500);
+        float seaPos = 0.01 * sin(time * speed * 500);
         unifiedShader.setFloat("seaPos", seaPos);
         translationMatrix = glm::translate(model, glm::vec3(-5.0f, 0.3f, -2.5f));
         unifiedShader.setMat4("translationMatrix", translationMatrix);
@@ -386,7 +488,6 @@ int main(void)
         unifiedShader.setFloat("scale", 0.08);
         island.Draw(unifiedShader);
 
-        unifiedShader.setBool("model", false);
 
 
 
@@ -424,6 +525,26 @@ int main(void)
             fish.Draw(unifiedShader);
         }
 
+        float spotlightRadius = 10;
+        spotlightDir = glm::vec3(-sin(angle) * 7.0 * spotlightRadius,
+            -5.0,
+            cos(angle) * 7.0 * spotlightRadius);
+        unifiedShader.setVec3("spotLight.direction", spotlightDir);
+
+        // fire
+        fireIntensity = mix(fireIntensityStart, fireIntensityEnd, sin(time * speed * 500));
+
+        unifiedShader.setInt("mode", 5);
+        unifiedShader.setFloat("firePos", 1.2 + 0.3 * sin(time * speed * 500));
+        translationMatrix = glm::translate(model, glm::vec3(1.3f, 0.0f, 1.3f));
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        unifiedShader.setFloat("scale", 0.2);
+        fire.Draw(unifiedShader);
+
+
+        fireIntensity = mix(fireIntensityEnd, fireIntensityStart, sin(time * speed * 500));
+
+        unifiedShader.setVec3("pointLight.intensity", fireIntensity);
 
 
         // clouds
@@ -447,25 +568,17 @@ int main(void)
             cloud.Draw(unifiedShader);
         }
 
-        // fire
+       
 
-        unifiedShader.setInt("mode", 5);
-        unifiedShader.setFloat("firePos", 1.2 + 0.3 * sin(glfwGetTime() * speed * 500));
-        translationMatrix = glm::translate(model, glm::vec3(1.3f, 0.0f, 1.3f));
-        unifiedShader.setMat4("translationMatrix", translationMatrix);
-        unifiedShader.setFloat("scale", 0.2);
-        fire.Draw(unifiedShader); 
 
 
         // index 
         glBindVertexArray(VAO);
         unifiedShader.setInt("mode", 0);
-        unifiedShader.setBool("useTexture", true);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        unifiedShader.setBool("useTexture", false);
 
         //swap
         glfwSwapBuffers(window);
