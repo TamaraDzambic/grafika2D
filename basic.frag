@@ -114,7 +114,7 @@ void main() //Glavna funkcija sejdera
                break;
             
            case 3:  //clouds
-               outCol =  channelCol * vec4(ambient + diffuse + specular, 1.0);
+               outCol =  channelCol * vec4(result, 1.0);
                break;
            
            case 4: //fishes

@@ -38,7 +38,7 @@ glm::vec3 lerpedDirLightIntensity;
 #pragma endregion
 
 #pragma region Point light properties
-glm::vec3 firePos = glm::vec3(1.3,0.0,1.3);
+glm::vec3 firePos = glm::vec3(1.3, 1.0, 1.3);
 
 glm::vec3 softRed = glm::vec3(1.0, 0.4, 0.4);
 glm::vec3 softOrange = glm::vec3(1.0, 0.6, 0.2);
@@ -48,14 +48,10 @@ glm::vec3 fireIntensityStart = glm::vec3(0.9, 0.9, 0.9);
 glm::vec3 fireIntensityEnd = glm::vec3(0.5, 0.5, 0.5);
 glm::vec3 fireIntensity = fireIntensityStart;
 
-glm::vec3 fireScaleStart = glm::vec3(1.0, 1.0, 1.0);
-glm::vec3 fireScaleEnd = glm::vec3(0.8, 0.8, 0.8);
-glm::vec3 fireScale = fireScaleStart;
-glm::mat4 oreginalFireModel;
 #pragma endregion
 
 #pragma region Spotlight properties
-glm::vec3 spotlightPos = glm::vec3(1.0, 1.0, 1.0);
+glm::vec3 spotlightPos = glm::vec3(0.8, 1.0, 0.8);
 glm::vec3 spotlightDir = glm::vec3(0.0, 0.0, 0.0);
 glm::vec3 purple = glm::vec3(0.7, 0.0, 1.0);
 #pragma endregion
@@ -460,6 +456,13 @@ int main(void)
         glClearColor(lerpedBackroundColor.x, lerpedBackroundColor.y, lerpedBackroundColor.z, 1.0);
 
 
+
+        float spotlightRadius = 10;
+        spotlightDir = glm::vec3(-sin(angle) * 7.0 * spotlightRadius,
+            -5.0,
+            cos(angle) * 7.0 * spotlightRadius);
+        unifiedShader.setVec3("spotLight.direction", spotlightDir);
+
          //pamltree
 
         unifiedShader.setInt("mode", 1);
@@ -525,14 +528,8 @@ int main(void)
             fish.Draw(unifiedShader);
         }
 
-        float spotlightRadius = 10;
-        spotlightDir = glm::vec3(-sin(angle) * 7.0 * spotlightRadius,
-            -5.0,
-            cos(angle) * 7.0 * spotlightRadius);
-        unifiedShader.setVec3("spotLight.direction", spotlightDir);
 
         // fire
-        fireIntensity = mix(fireIntensityStart, fireIntensityEnd, sin(time * speed * 500));
 
         unifiedShader.setInt("mode", 5);
         unifiedShader.setFloat("firePos", 1.2 + 0.3 * sin(time * speed * 500));
@@ -541,10 +538,12 @@ int main(void)
         unifiedShader.setFloat("scale", 0.2);
         fire.Draw(unifiedShader);
 
+        fireColor = mix(softRed, softOrange, sin(time * speed * 500));
 
         fireIntensity = mix(fireIntensityEnd, fireIntensityStart, sin(time * speed * 500));
 
         unifiedShader.setVec3("pointLight.intensity", fireIntensity);
+        unifiedShader.setVec3("pointLight.color", fireColor);
 
 
         // clouds
