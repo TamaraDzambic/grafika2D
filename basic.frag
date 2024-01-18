@@ -17,7 +17,6 @@ uniform vec3 uLightColor;
 uniform sampler2D uTex; //teksturna jedinica
 uniform bool useTexture;
 uniform bool model;
-uniform bool fire;
 
 void main() //Glavna funkcija sejdera
 {
@@ -38,12 +37,10 @@ void main() //Glavna funkcija sejdera
         vec3 specular = specularStrength * spec * uLightColor;  
 
         outCol =  channelCol * vec4(ambient + diffuse + specular, 1.0);
-    if(fire){
-        outCol =  channelCol;
-    }
+
     if(model){
             outCol =  texture(uTex, chUV) * vec4(ambient + diffuse + specular, 1.0);
-}
+    }
     if (useTexture) {
         outCol = texture(uTex, texCoord); //boja na koordinatama chTex teksture vezane na teksturnoj jedinici uTex
     } 

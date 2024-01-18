@@ -25,7 +25,6 @@
 
 static unsigned loadImageToTexture(const char* filePath); 
 void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int verticesCount, unsigned indexTexture);
-void generateFire(float circle[], float centerX, float centerY, float centerZ, float radius, float aspectRatio, int beg);
 
 int main(void)
 {
@@ -62,10 +61,10 @@ int main(void)
     Shader unifiedShader("basic.vert", "basic.frag");
     unifiedShader.use();
 
-    unsigned int VAO[2];
-    glGenVertexArrays(2, VAO);
-    unsigned int VBO[2];
-    glGenBuffers(2, VBO);
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    unsigned int VBO;
+    glGenBuffers(1, &VBO);
 
     // index texture
     float indexVertices[] = {
@@ -75,19 +74,10 @@ int main(void)
         0.7f, -0.85f,  0.0f, 1.0f
     };
     unsigned indexTexture = loadImageToTexture("index.png");
-    initializeTexture(VAO[0], VBO[0], indexVertices, sizeof(indexVertices), indexTexture);
+    initializeTexture(VAO, VBO, indexVertices, sizeof(indexVertices), indexTexture);
 
     // fire
-    float fire[((2 + CRES) * 3) * 2] = {};
-    generateFire(fire, 1.3f, 0.6f, 1.3f, 0.2f, aspectRatio, 0);
-    generateFire(fire, 1.3f, -0.01f, 1.3f, 0.2f, aspectRatio, (2 + CRES) * 3);
-
-    glBindVertexArray(VAO[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(fire), fire, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
+    Model fire("res/fire/fire.obj");
     // sea
     Model sea("res/sea/Ocean.obj");
     // island
@@ -458,19 +448,17 @@ int main(void)
         }
 
         // fire
-        glBindVertexArray(VAO[1]);
-        glDisable(GL_CULL_FACE); 
+
         unifiedShader.setInt("mode", 5);
-        unifiedShader.setBool("fire", true);
         unifiedShader.setFloat("firePos", 1.2 + 0.3 * sin(glfwGetTime() * speed * 500));
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 32);
-        glDrawArrays(GL_TRIANGLE_FAN, 32, 32);
-        unifiedShader.setBool("fire", false);
-        glEnable(GL_CULL_FACE);  
+        translationMatrix = glm::translate(model, glm::vec3(1.3f, 0.0f, 1.3f));
+        unifiedShader.setMat4("translationMatrix", translationMatrix);
+        unifiedShader.setFloat("scale", 0.2);
+        fire.Draw(unifiedShader); 
 
 
         // index 
-        glBindVertexArray(VAO[0]);
+        glBindVertexArray(VAO);
         unifiedShader.setInt("mode", 0);
         unifiedShader.setBool("useTexture", true);
         glBindTexture(GL_TEXTURE_2D, indexTexture);
@@ -486,8 +474,8 @@ int main(void)
 
     //empty and end
     glDeleteTextures(1, &indexTexture);
-    glDeleteBuffers(1, VBO);
-    glDeleteVertexArrays(1, VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO);
     glDeleteProgram(unifiedShader.ID);
     glfwTerminate();
     return 0;
@@ -546,16 +534,4 @@ void initializeTexture(unsigned int VAO, unsigned int VBO, float* vertices, int 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void generateFire(float circle[], float centerX, float centerY, float centerZ, float radius, float aspectRatio, int beg) {
-    circle[beg] = centerX; // Center X
-    circle[beg + 1] = centerY; // Center Y
-    circle[beg + 2] = centerZ; // Center Z
-    for (int i = 0; i <= CRES; i++) {
-        float angle = (M_PI / 180) * (i * 360.0 / CRES);
-        circle[beg + 3 + 3 * i] = centerX + radius * cos(angle); // Xi
-        circle[beg + 3 + 3 * i + 1] = 0.2; // Yi
-        circle[beg + 3 + 3 * i + 2] = centerZ + radius * sin(angle); // Yi
-    }
 }
